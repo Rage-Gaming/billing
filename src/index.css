@@ -1,5 +1,7 @@
 @import "tailwindcss";
 body {
+    font-family: "Poppins", sans-serif;
+    font-style: normal;
     background-color: rgb(48, 48, 48);
 }
 
@@ -12,9 +14,12 @@ input::-webkit-inner-spin-button {
 @media print {
     @page {
         margin: 0;
+        margin-top: 2;
     }
     body {
-        color: black !important;
+        margin: 0;
+        padding: 0;
+        background-color: white !important;
     }
     .navBar {
         display: none;
@@ -31,4 +36,20 @@ input::-webkit-inner-spin-button {
         border: none !important;
 
     }
+    .printDesign {
+        color: black !important;
+    }
+    .printDesignDate {
+        color: black;
+        padding: 0;
+        border: none;
+    }
+
+    .inputBox {
+        display: none !important;
+    }
+
+    header, footer, nav, .no-print {
+        display: none !important;
+      }
 }

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import axios from "axios";
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -8,15 +9,22 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    
-    // Replace with your actual authentication API call
-    if (email === 'user@example.com' && password === 'password123') {
-      // Store authentication token
-      localStorage.setItem('authToken', 'your-auth-token-here');
-      navigate('/dashboard');
-    } else {
-      setError('Invalid credentials');
+    e.preventDefault()
+    try {
+      const { data } = await axios.post("http://localhost:5000/login", {
+        email,
+        password,
+      });
+
+      if (data.token) {
+        localStorage.setItem("authToken", data.token); // Store token
+        navigate(`/welcome?username=${data.username}`); // Redirect to welcome page with username
+      } else {
+        setError("Invalid credentials");
+      }
+    } catch (error) {
+      setError("Login failed. Please check your credentials.");
+      console.error("Login Error:", error);
     }
   };
 
@@ -24,7 +32,7 @@ const LoginPage = () => {
     <div className="flex items-center justify-center h-screen bg-gray-900">
       <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
         <h2 className="text-2xl text-white mb-6 text-center">Login</h2>
-        <form onSubmit={handleLogin}>
+        <form onSubmit={(e) => handleLogin(e)}>
           <div className="mb-4">
             <label className="block text-white mb-2">Email</label>
             <input

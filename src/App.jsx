@@ -1,8 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import LoginPage from './components/loginPage.jsx';
-import Dashboard from './components/Dashboard'; // Create this component
+import LoginPage from './pages/loginPage.jsx';
 import Error404 from './components/Error404.jsx';
+import Welcome from './pages/Welcome.jsx';
+import Invoice from './pages/Invoice.jsx';
 
 // Create a ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
@@ -12,15 +13,22 @@ const ProtectedRoute = ({ children }) => {
 
 const App = () => {
   return (
-    <Router>
+    <section className='min-h-screen'>
+      <Router>
         <Routes>
-          <Route path="/" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
           
-          <Route 
-            path="/dashboard" 
+          <Route path="/welcome" 
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <Welcome />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="/invoice" 
+            element={
+              <ProtectedRoute>
+                <Invoice />
               </ProtectedRoute>
             } 
           />
@@ -28,6 +36,7 @@ const App = () => {
 
         </Routes>
     </Router>
+    </section>
   );
 }
 
