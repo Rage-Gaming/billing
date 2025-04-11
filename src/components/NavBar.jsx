@@ -11,7 +11,7 @@ const NavBar = () => {
         <h1>Boundless</h1>
       </div>
         <div className='flex items-center justify-between gap-10 text-[#242424] font-bold'>
-            <h1 onClick={() => navigate("/invoice")} className='cursor-pointer'>New Invoice</h1>
+            <h1 onClick={() => navigate("/customer")} className='cursor-pointer'>New Invoice</h1>
             <h1 className='cursor-pointer'>History</h1>
             <h1 className='cursor-pointer'>Profile</h1>
         </div>

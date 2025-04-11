@@ -10,7 +10,7 @@ function InvoiceLineItems() {
   const [filteredItems, setFilteredItems] = useState([]);
   const [activeInput, setActiveInput] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newItem, setNewItem] = useState({ name: '', rate: '' });
+  const [newItem, setNewItem] = useState({ name: '', rate: '0.00' }); // Initialize rate as string
   const [currentCreatingItemId, setCurrentCreatingItemId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef(null);
@@ -25,7 +25,7 @@ function InvoiceLineItems() {
 
     setIsLoading(true);
     try {
-      const response = await axios.get(`http://localhost:5000/api/items/search?q=${encodeURIComponent(query)}`);
+      const response = await axios.post(`http://localhost:5000/api/items/search?q=${encodeURIComponent(query)}`);
       setFilteredItems(response.data);
     } catch (error) {
       console.error('Error searching items:', error);
@@ -43,7 +43,7 @@ function InvoiceLineItems() {
   }, [searchItems]);
 
   // Calculate totals
-  const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
+  const subtotal = items.reduce((sum, item) => sum + (isNaN(item.amount) ? 0 : item.amount), 0);
   const taxRate = 0.18;
   const taxAmount = subtotal * taxRate;
   const total = subtotal + taxAmount;
@@ -218,49 +218,64 @@ function InvoiceLineItems() {
 
   const handleCreateNewItem = (itemId) => {
     setCurrentCreatingItemId(itemId);
-    setNewItem({ name: items.find(item => item.id === itemId).description, rate: '' });
+    setNewItem({ 
+      name: items.find(item => item.id === itemId).description, 
+      rate: '0.00' // Initialize with string '0.00'
+    });
     setShowCreateModal(true);
   };
 
   const saveNewItem = async () => {
-    if (!newItem.name || !newItem.rate) return;
-    
     try {
-      // Save to server first
+      const rateValue = parseFloat(newItem.rate) || 0;
+      
+      if (!newItem.name.trim() || isNaN(rateValue)) {
+        showNotification('Please enter valid item details');
+        return;
+      }
+  
       const response = await axios.post('http://localhost:5000/api/save/items', {
         name: newItem.name,
-        rate: parseFloat(newItem.rate)
+        rate: rateValue
       });
-      
-      // Update the current item with the new item data
+  
+      // Ensure we have a valid response
+      if (!response.data) {
+        throw new Error('Invalid server response');
+      }
+  
       setItems(prevItems => {
-        const updatedItems = prevItems.map(item => {
+        // Safely map through items
+        const updatedItems = (prevItems || []).map(item => {
           if (item.id === currentCreatingItemId) {
             return {
               ...item,
-              description: response.data.name,
-              rate: response.data.rate,
-              amount: item.qty * response.data.rate
+              description: response.data.name || newItem.name,
+              rate: response.data.rate || rateValue,
+              amount: (item.qty || 1) * (response.data.rate || rateValue)
             };
           }
           return item;
         });
-        
-        // Add new empty item if we were editing the last one
-        if (currentCreatingItemId === prevItems[prevItems.length - 1].id) {
-          return [...updatedItems, { 
-            id: getNextId(), 
-            description: '', 
-            qty: 1, 
-            rate: 0.00, 
-            amount: 0.00 
-          }];
+  
+        // Add new empty item if needed
+        if (currentCreatingItemId === (prevItems[prevItems.length - 1]?.id)) {
+          return [
+            ...updatedItems, 
+            { 
+              id: getNextId(), 
+              description: '', 
+              qty: 1, 
+              rate: 0.00, 
+              amount: 0.00 
+            }
+          ];
         }
         return updatedItems;
       });
-      
+  
       setShowCreateModal(false);
-      setNewItem({ name: '', rate: '' });
+      setNewItem({ name: '', rate: '0.00' });
     } catch (error) {
       console.error('Error saving new item:', error);
       showNotification('Failed to save new item');
@@ -289,9 +304,23 @@ function InvoiceLineItems() {
                 type="number"
                 className="w-full p-2 border border-gray-700 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={newItem.rate}
-                onChange={(e) => setNewItem({...newItem, rate: e.target.value})}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty string or valid numbers
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setNewItem({...newItem, rate: value});
+                  }
+                }}
+                onBlur={(e) => {
+                  // Format to 2 decimal places when leaving field
+                  if (e.target.value !== '') {
+                    const num = parseFloat(e.target.value);
+                    setNewItem({...newItem, rate: isNaN(num) ? '0.00' : num.toFixed(2)});
+                  }
+                }}
                 step="0.01"
                 min="0"
+                placeholder="0.00"
               />
             </div>
             <div className="flex justify-end space-x-3">
@@ -395,7 +424,7 @@ function InvoiceLineItems() {
               </td>
               <td className="py-3 px-4 text-right">
                 <div className="w-24 p-2 border border-gray-600 rounded bg-gray-700 text-right">
-                  ${item.amount.toFixed(2)}
+                  ${!isNaN(item.amount) ? item.amount.toFixed(2) : '0.00'}
                 </div>
               </td>
               <td className="py-3 px-4 text-center">

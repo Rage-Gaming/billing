@@ -5,6 +5,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const Item = require('./models/Item.cjs'); // Adjust the path as necessary
+const InvoiceCounter = require('./models/InvoiceCounter.cjs');
+const Client = require('./models/Client.cjs'); // Adjust the path as necessary
 
 const app = express();
 app.use(express.json());
@@ -76,7 +78,7 @@ app.post("/api/save/items", async (req, res) => {
 });
 
 // Search items
-app.get('/api/items/search', async (req, res) => {
+app.post('/api/items/search', async (req, res) => {
   try {
     const { q } = req.query;
     
@@ -96,6 +98,81 @@ app.get('/api/items/search', async (req, res) => {
     res.status(500).json({ 
       error: 'Server error during search',
       details: error.message 
+    });
+  }
+});
+
+
+
+app.post('/api/invoices/next-number', async (req, res) => {
+  try {
+    const counter = await InvoiceCounter.findByIdAndUpdate(
+      'invoice',
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+    res.json({ nextNumber: counter.seq });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/clients/search', async (req, res) => {
+  try {
+    const { query } = req.body;
+    
+    // Validate input
+    if (!query || typeof query !== 'string' || query.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query must be at least 2 characters long'
+      });
+    }
+
+    const searchQuery = query.trim();
+    
+    // Option 1: Using MongoDB text search (requires text index)
+    const results = await Client.find(
+      { $text: { $search: searchQuery } },
+      { score: { $meta: 'textScore' } }
+    )
+    .sort({ score: { $meta: 'textScore' } })
+    .limit(10)
+    .lean();
+
+    // Option 2: Using regex if text search isn't configured
+    /*
+    const results = await Client.find({
+      $or: [
+        { name: { $regex: searchQuery, $options: 'i' } },
+        { contactNumber: { $regex: searchQuery, $options: 'i' } },
+        { city: { $regex: searchQuery, $options: 'i' } }
+      ]
+    })
+    .limit(10)
+    .lean();
+    */
+
+    // Format response
+    const formattedResults = results.map(client => ({
+      _id: client._id,
+      name: client.name,
+      address: client.address,
+      city: client.city,
+      contactNumber: client.contactNumber
+    }));
+
+    res.json({
+      success: true,
+      data: formattedResults
+    });
+
+  } catch (error) {
+    console.error('Client search error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during client search',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
