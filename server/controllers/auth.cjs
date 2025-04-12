@@ -1,6 +1,14 @@
 const User = require('../models/User.cjs');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
+// Helper function to create JWT token
+const createToken = (userId, isAdmin) => {
+  return jwt.sign(
+    { id: userId, isAdmin }, 
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+};
 
 exports.register = async (req, res) => {
   try {
@@ -12,38 +20,49 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: 'Email already in use' });
     }
 
+    // Create new user (non-admin by default)
     const user = new User({ username, email, password });
     await user.save();
 
-    res.status(201).json({ message: 'User registered successfully' });
+    // Create token
+    const token = createToken(user._id, user.isAdmin);
+
+    res.status(201).json({ 
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin
+      }
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Registration failed' });
   }
 };
 
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
 
-    if (!user) return res.status(400).json({ error: 'User not found' });
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { 
-      expiresIn: '1h' 
-    });
+    const token = createToken(user._id, user.isAdmin);
 
     res.json({ 
-      token, 
-      user: { 
-        id: user._id, 
-        username: user.username, 
-        email: user.email 
-      } 
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin
+      }
     });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Login failed' });
   }
 };
