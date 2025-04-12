@@ -2,17 +2,18 @@ const User = require('../models/User.cjs');
 const jwt = require('jsonwebtoken');
 
 // Helper function to create JWT token
-const createToken = (userId, isAdmin) => {
-  return jwt.sign(
-    { id: userId, isAdmin }, 
-    process.env.JWT_SECRET,
-    { expiresIn: '1h' }
-  );
-};
+// const createToken = (userId, isAdmin) => {
+//   return jwt.sign(
+//     { id: userId, isAdmin }, 
+//     process.env.JWT_SECRET,
+//     { expiresIn: '1h' }
+//   );
+// };
 
 exports.register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
+    console.log('Registration attempt:', req.body); // Debugging line
     
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -24,11 +25,7 @@ exports.register = async (req, res) => {
     const user = new User({ username, email, password });
     await user.save();
 
-    // Create token
-    const token = createToken(user._id, user.isAdmin);
-
     res.status(201).json({ 
-      token,
       user: {
         id: user._id,
         username: user.username,
@@ -43,20 +40,18 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
+    console.log('Login attempt:', req.body); // Debugging line
     const { email, password } = req.body;
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
     const isMatch = await user.comparePassword(password);
+    console.log(isMatch)
     if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const token = createToken(user._id, user.isAdmin);
-
-    res.json({ 
-      token,
+    res.status(200).json({ 
       user: {
-        id: user._id,
         username: user.username,
         email: user.email,
         isAdmin: user.isAdmin

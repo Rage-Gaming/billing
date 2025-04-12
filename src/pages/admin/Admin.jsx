@@ -2,11 +2,18 @@ import { React, useState } from 'react'
 import AdminNavbar from './AdminNavbar'
 import Button from '@mui/material/Button';
 import FormDialog from '../../components/Modal';
+import axios from 'axios';
 
 const Admin = () => {
   const [isModelOpen, setModelIsOpen] = useState(false);
 
   const formFields = [
+    {
+      name: 'username',
+      label: 'Username',
+      type: 'text',
+      required: true,
+    },
     {
       name: 'email',
       label: 'Email ID',
@@ -21,7 +28,14 @@ const Admin = () => {
     },
   ];
 
-  const handleFormSubmit = (data) => {
+  const handleNewUserFormSubmit = (data) => {
+    axios.post('http://localhost:5000/api/auth/register', data)
+      .then((response) => {
+        setModelIsOpen(false);
+      })
+      .catch((error) => {
+        console.error('There was an error!', error);
+      });
     console.log(data);
   }
 
@@ -48,11 +62,11 @@ const Admin = () => {
 
         <FormDialog
         open={isModelOpen}
-        onClose={() => setModelIsOpen(false)}
+        onClose={() => console.log('close')}
         title="Create new user"
         description="Please enter the details"
         fields={formFields}
-        onSubmit={handleFormSubmit}
+        onSubmit={handleNewUserFormSubmit}
         submitText="Create"
       />
 

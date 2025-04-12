@@ -11,14 +11,12 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault()
     try {
-      const { data } = await axios.post("http://localhost:5000/login", {
+      const { data } = await axios.post("http://localhost:5000/api/auth/login", {
         email,
         password,
       });
-
-      if (data.token) {
-        localStorage.setItem("authToken", data.token); // Store token
-        navigate(`/welcome?username=${data.username}`); // Redirect to welcome page with username
+      if (data.user.username) {
+        navigate(`/welcome?username=${data.user.username}`); // Redirect to welcome page with username
       } else {
         setError("Invalid credentials");
       }
@@ -30,7 +28,7 @@ const LoginPage = () => {
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-900">
-      <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
+      <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-96"> 
         <h2 className="text-2xl text-white mb-6 text-center">Login</h2>
         <form onSubmit={(e) => handleLogin(e)}>
           <div className="mb-4">
