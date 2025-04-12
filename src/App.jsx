@@ -19,10 +19,7 @@ const App = () => {
       <Router>
         <CustomerProvider>
           <Routes>
-            {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
-            
-            {/* Protected routes */}
             <Route path="/welcome" element={
               <ProtectedRoute>
                 <Welcome />
@@ -40,8 +37,7 @@ const App = () => {
                 <Invoice />
               </ProtectedRoute>
             } />
-            
-            {/* Redirects and fallback */}
+
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<Error404 />} />
           </Routes>
