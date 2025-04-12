@@ -6,6 +6,7 @@ import Welcome from './pages/Welcome.jsx';
 import Invoice from './pages/Invoice.jsx';
 import Customer from './pages/Customer.jsx';
 import { CustomerProvider } from './context/CustomerContext';
+import Admin from './pages/admin/Admin.jsx';
 
 // Create a ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
@@ -15,11 +16,12 @@ const ProtectedRoute = ({ children }) => {
 
 const App = () => {
   return (
-    <section className='min-h-screen'>
+    <section>
       <Router>
         <CustomerProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="/welcome" element={
               <ProtectedRoute>
                 <Welcome />

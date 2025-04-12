@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:server": "nodemon server/index.cjs",
-    "start": "node server/index.cjs",
+    "dev:server": "nodemon server/server.cjs",
+    "start": "node server/server.cjs",
     "build": "vite build"
   },
   "dependencies": {
