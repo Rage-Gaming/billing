@@ -9,7 +9,7 @@ import ListItem from '@mui/material/ListItem';
 
 const SearchableDropdown = ({
   options = [],
-  value = null,
+  id = null,
   onChange = () => {},
   onCreateOption = null,
   label = 'Search Customer',
@@ -77,7 +77,7 @@ const SearchableDropdown = ({
   return (
     <Autocomplete
       options={options}
-      value={value}
+      value={id}
       onChange={(_, newValue) => onChange(newValue)}
       inputValue={inputValue}
       onInputChange={(_, newInput) => setInputValue(newInput)}
@@ -112,7 +112,6 @@ const SearchableDropdown = ({
                 variant="outlined"
                 onClick={() => {
                   const newOption = { 
-                    value: Date.now().toString(),
                     label: inputValue,
                     address: ''
                   };

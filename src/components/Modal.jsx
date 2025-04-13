@@ -9,7 +9,14 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Checkbox from '@mui/material/Checkbox';
 
 const FormDialog = ({ open, onClose, title, description, fields, onSubmit, submitText = 'Submit', cancelText = 'Cancel' }) => {
-  const [formData, setFormData] = useState({});
+  // Initialize formData with default values
+  const [formData, setFormData] = useState(() => {
+    const initialData = {};
+    fields.forEach(field => {
+      initialData[field.name] = field.defaultValue !== undefined ? field.defaultValue : '';
+    });
+    return initialData;
+  });
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -25,6 +32,17 @@ const FormDialog = ({ open, onClose, title, description, fields, onSubmit, submi
     onClose();
   };
 
+  // Reset form when opening/closing
+  React.useEffect(() => {
+    if (open) {
+      const initialData = {};
+      fields.forEach(field => {
+        initialData[field.name] = field.defaultValue !== undefined ? field.defaultValue : '';
+      });
+      setFormData(initialData);
+    }
+  }, [open, fields]);
+
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogTitle>{title}</DialogTitle>
@@ -36,28 +54,27 @@ const FormDialog = ({ open, onClose, title, description, fields, onSubmit, submi
               <div key={field.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
                 <Checkbox
                   name={field.name}
-                  checked={Boolean(formData[field.name])} // Ensure boolean
+                  checked={Boolean(formData[field.name])}
                   onChange={handleChange}
                 />
                 <label htmlFor={field.name}>{field.label}</label>
               </div>
-            ) :
+            ) : (
               <TextField
                 key={field.name}
                 autoFocus={field.autoFocus}
                 required={field.required}
                 margin="dense"
-                minLength={field.length || 0}
-                maxLength={field.length || 100}
                 name={field.name}
                 label={field.label}
                 type={field.type || 'text'}
                 fullWidth
                 variant={field.variant || 'standard'}
-                value={formData[field.name] || field.defaultValue || ''}
+                value={formData[field.name] || ''}
                 onChange={handleChange}
                 autoComplete="off"
               />
+            )
           ))}
         </form>
       </DialogContent>

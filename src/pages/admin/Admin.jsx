@@ -67,7 +67,7 @@ const Admin = () => {
 
         <FormDialog
         open={isModelOpen}
-        onClose={() => console.log('close')}
+        onClose={() => setModelIsOpen(false)}
         title="Create new user"
         description="Please enter the details"
         fields={formFields}

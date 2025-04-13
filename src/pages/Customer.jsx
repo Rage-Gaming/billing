@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import FormDialog from '../components/Modal';
 import NavBar from '../components/NavBar';
 import SearchableDropdown from '../components/Dropdown';
+import axios from 'axios';
 
 function Customer() {
   const { setCustomer } = useCustomer();
@@ -13,7 +14,7 @@ function Customer() {
   const [modalName, setModalName] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [clients, setClients] = useState([
-    { value: '1', label: 'Nidhin', address: 'Kerala', number: '1234567890' },
+    // { id: '1', label: 'Nidhin', address: 'Kerala', number: '1234567890' },
     // ... other clients
   ]);
 
@@ -22,17 +23,28 @@ function Customer() {
     setModalName(newItem.label);
   };
 
-  const handleFormSubmit = (data) => {
+  const handleNewCustomerFormSubmit = (data) => {
+    console.log('New customer data:', data);
     const newCustomer = {
-      value: Date.now().toString(),
-      label: data.name,
+      clientName: data.clientName,
       address: data.address,
       number: data.number
     };
-    setClients([...clients, newCustomer]);
-    setCustomer(newCustomer);
-    setSelectedCustomer(newCustomer);
-    setModelIsOpen(false);
+    // setClients([...clients, newCustomer]);
+    // setCustomer(newCustomer);
+    // setSelectedCustomer(newCustomer);
+    axios.post('http://localhost:5000/api/clients/register', newCustomer)
+      .then((response) => {
+        console.log(response.data);
+        setClients([...clients, response.data]);
+        setSelectedCustomer(response.data);
+        setCustomer(response.data);
+        setModelIsOpen(false);
+      }
+    ).catch((error) => {
+      console.error('Error creating new customer:', error);
+    }
+    );
   };
 
   const handleContinue = () => {
@@ -43,26 +55,9 @@ function Customer() {
   };
 
   const formFields = [
-    {
-      name: 'name',
-      label: 'Full Name',
-      type: 'text',
-      required: true,
-      defaultValue: modalName
-    },
-    {
-      name: 'address',
-      label: 'Address',
-      type: 'text',
-      required: true
-    },
-    {
-      name: 'number',
-      label: 'Mobile No',
-      type: 'number',
-      required: true,
-      inputProps: { maxLength: 10 }
-    }
+    { name: 'clientName', label: 'Full Name', type: 'text', required: true, defaultValue: modalName},
+    { name: 'address', label: 'Address', type: 'text', required: true },
+    { name: 'number', label: 'Mobile No', type: 'number', required: true, inputProps: { maxLength: 10 }}
   ];
 
   return (
@@ -112,7 +107,7 @@ function Customer() {
         title="Create new customer"
         description="Please enter the details"
         fields={formFields}
-        onSubmit={handleFormSubmit}
+        onSubmit={handleNewCustomerFormSubmit}
         submitText="Save"
       />
     </div>
