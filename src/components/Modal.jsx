@@ -6,13 +6,17 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
+import Checkbox from '@mui/material/Checkbox';
 
-const FormDialog = ({open, onClose, title, description, fields, onSubmit, submitText = 'Submit', cancelText = 'Cancel' }) => {
+const FormDialog = ({ open, onClose, title, description, fields, onSubmit, submitText = 'Submit', cancelText = 'Cancel' }) => {
   const [formData, setFormData] = useState({});
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleChange = (event) => {
+    const { name, value, type, checked } = event.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   const handleSubmit = (e) => {
@@ -28,21 +32,32 @@ const FormDialog = ({open, onClose, title, description, fields, onSubmit, submit
         {description && <DialogContentText>{description}</DialogContentText>}
         <form onSubmit={handleSubmit} id="modal-form">
           {fields.map((field) => (
-            <TextField
-              key={field.name}
-              autoFocus={field.autoFocus}
-              required={field.required}
-              margin="dense"
-              minLength={field.length || 0}
-              maxLength={field.length || 100}
-              name={field.name}
-              label={field.label}
-              type={field.type || 'text'}
-              fullWidth
-              variant={field.variant || 'standard'}
-              value={formData[field.name] || field.defaultValue || ''}
-              onChange={handleChange}
-            />
+            field.type === 'checkbox' ? (
+              <div key={field.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                <Checkbox
+                  name={field.name}
+                  checked={Boolean(formData[field.name])} // Ensure boolean
+                  onChange={handleChange}
+                />
+                <label htmlFor={field.name}>{field.label}</label>
+              </div>
+            ) :
+              <TextField
+                key={field.name}
+                autoFocus={field.autoFocus}
+                required={field.required}
+                margin="dense"
+                minLength={field.length || 0}
+                maxLength={field.length || 100}
+                name={field.name}
+                label={field.label}
+                type={field.type || 'text'}
+                fullWidth
+                variant={field.variant || 'standard'}
+                value={formData[field.name] || field.defaultValue || ''}
+                onChange={handleChange}
+                autoComplete="off"
+              />
           ))}
         </form>
       </DialogContent>

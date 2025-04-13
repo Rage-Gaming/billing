@@ -26,9 +26,14 @@ const Admin = () => {
       type: 'text',
       required: true
     },
+    {
+      name: 'admin',
+      label: 'Admin user',
+      type: 'checkbox',
+    },
   ];
 
-  const handleNewUserFormSubmit = (data) => {
+  const handleNewUserRegisterFormSubmit = (data) => {
     axios.post('http://localhost:5000/api/auth/register', data)
       .then((response) => {
         setModelIsOpen(false);
@@ -66,7 +71,7 @@ const Admin = () => {
         title="Create new user"
         description="Please enter the details"
         fields={formFields}
-        onSubmit={handleNewUserFormSubmit}
+        onSubmit={handleNewUserRegisterFormSubmit}
         submitText="Create"
       />
 

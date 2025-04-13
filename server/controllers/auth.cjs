@@ -12,9 +12,8 @@ const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    console.log('Registration attempt:', req.body); // Debugging line
-    
+
+    const { admin, username, email, password } = req.body;
     // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -22,7 +21,7 @@ exports.register = async (req, res) => {
     }
 
     // Create new user (non-admin by default)
-    const user = new User({ username, email, password });
+    const user = new User({ admin, username, email, password });
     await user.save();
 
     res.status(201).json({ 
