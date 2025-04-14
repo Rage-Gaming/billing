@@ -12,11 +12,13 @@ const SearchableDropdown = ({
   id = null,
   onChange = () => {},
   onCreateOption = null,
+  onInputChange = () => {}, // 👈 Add this prop
   label = 'Search Customer',
   placeholder = 'Type customer name or address...',
   noOptionsText = 'No matching customers found',
   createButtonText = 'Create new customer'
 }) => {
+
   const [inputValue, setInputValue] = useState('');
 
   // Highlight matching text in both name and address
@@ -69,7 +71,7 @@ const SearchableDropdown = ({
     if (!inputValue) return options;
     
     return options.filter(option => 
-      option.label.toLowerCase().includes(inputValue.toLowerCase()) ||
+      option.clientName.toLowerCase().includes(inputValue.toLowerCase()) ||
       (option.address && option.address.toLowerCase().includes(inputValue.toLowerCase()))
     );
   };
@@ -80,8 +82,11 @@ const SearchableDropdown = ({
       value={id}
       onChange={(_, newValue) => onChange(newValue)}
       inputValue={inputValue}
-      onInputChange={(_, newInput) => setInputValue(newInput)}
-      getOptionLabel={(option) => option.label || ''}
+      onInputChange={(_, newInput) => {
+        setInputValue(newInput);
+        onInputChange(newInput); // 👈 Call parent setter
+      }}
+      getOptionLabel={(option) => option.clientName || ''}
       isOptionEqualToValue={(option, value) => option.value === value?.value}
       filterOptions={filterOptions}
       renderOption={(props, option) => {
@@ -89,7 +94,7 @@ const SearchableDropdown = ({
         return (
           <ListItem key={key} {...otherProps} sx={{ py: 1.5 }}>
             <Box>
-              <div>{highlightMatch(option.label, inputValue)}</div>
+              <div>{highlightMatch(option.clientName, inputValue)}</div>
               {option.address && (
                 <Typography variant="body2" sx={{ opacity: 0.7 }}>
                   {highlightMatch(option.address, inputValue)}

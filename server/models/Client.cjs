@@ -4,7 +4,7 @@ const ClientSchema = new mongoose.Schema({
   id: { type: Number, unique: true, index: true },
   clientName: { type: String, required: [true, 'Client name is required'], trim: true, minlength: [2, 'Name must be at least 2 characters'], text: true },
   address: { type: String, trim: true, text: true },
-  contactNumber: { type: String, trim: true, text: true, validate: { validator: (v) => /^[\d\s+-]+$/.test(v), message: (props) => `${props.value} is not a valid phone number!` } },
+  number: { type: String, required: [true, 'Client phone number is required'], trim: true, text: true, validate: { validator: (v) => /^\d{10}$/.test(v), message: (props) => `${props.value} must be a 10-digit number with no spaces or symbols!` } },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true, autoIndex: process.env.NODE_ENV !== 'production' });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCustomer } from '../context/CustomerContext';
 import { useNavigate } from "react-router-dom";
 import Button from '@mui/material/Button';
@@ -13,10 +13,43 @@ function Customer() {
   const [isModelOpen, setModelIsOpen] = useState(false);
   const [modalName, setModalName] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [clients, setClients] = useState([
-    // { id: '1', label: 'Nidhin', address: 'Kerala', number: '1234567890' },
-    // ... other clients
-  ]);
+
+  //Client search data
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const [clients, setClients] = useState([]);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      if (query.trim().length < 2) {
+        setClients([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await axios.post('http://localhost:5000/api/clients/search', { query });
+
+        if (response.data.success) {
+          setClients(response.data.data);
+        } else {
+          setClients([]);
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        setClients([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      fetchClients();
+    }, 300); // debounce to avoid rapid API calls
+
+    return () => clearTimeout(delayDebounce);
+  }, [query]);
 
   const handleCreate = (newItem) => {
     setModelIsOpen(true);
@@ -24,7 +57,6 @@ function Customer() {
   };
 
   const handleNewCustomerFormSubmit = (data) => {
-    console.log('New customer data:', data);
     const newCustomer = {
       clientName: data.clientName,
       address: data.address,
@@ -71,6 +103,7 @@ function Customer() {
               value={selectedCustomer}
               onChange={setSelectedCustomer}
               onCreateOption={handleCreate}
+              onInputChange={setQuery} // 👈 This is key
               label="Clients"
               placeholder="Search clients..."
             />
@@ -80,7 +113,7 @@ function Customer() {
             Selected:
             {selectedCustomer ? (
               <ul className="list-disc pl-5 mt-2">
-                <li>Name: {selectedCustomer.label}</li>
+                <li>Name: {selectedCustomer.clientName}</li>
                 {selectedCustomer.address && <li>Address: {selectedCustomer.address}</li>}
                 {selectedCustomer.number && <li>Phone: {selectedCustomer.number}</li>}
               </ul>

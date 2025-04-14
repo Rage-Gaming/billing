@@ -3,7 +3,7 @@ const Client = require('../models/Client.cjs');
 exports.searchClients = async (req, res) => {
   try {
     const { query } = req.body;
-    
+
     if (!query || typeof query !== 'string' || query.trim().length < 2) {
       return res.status(400).json({
         success: false,
@@ -12,18 +12,27 @@ exports.searchClients = async (req, res) => {
     }
 
     const searchQuery = query.trim();
-    
+
     const results = await Client.find(
-      { $text: { $search: searchQuery } },
-      { score: { $meta: 'textScore' } }
-    )
-    .sort({ score: { $meta: 'textScore' } })
-    .limit(10);
+      {
+        $or: [
+          { clientName: { $regex: searchQuery, $options: 'i' } },
+          { address: { $regex: searchQuery, $options: 'i' } }
+        ]
+      },
+      {
+        id: 1,
+        clientName: 1,
+        address: 1,
+        number: 1
+      }
+    ).limit(10);
 
     res.json({
       success: true,
       data: results
     });
+
   } catch (error) {
     console.error('Client search error:', error);
     res.status(500).json({
@@ -34,12 +43,13 @@ exports.searchClients = async (req, res) => {
   }
 };
 
+
+
 exports.registerClient = async (req, res) => {
   try {
-    console.log('Client registration request:', req.body);
-    const { clientName, phone, address } = req.body;
+    const { clientName, number, address } = req.body;
 
-    // Optimized validation
+    // Name validation
     const nameTrimmed = clientName?.trim();
     if (!nameTrimmed || nameTrimmed.length < 2) {
       return res.status(400).json({
@@ -48,30 +58,54 @@ exports.registerClient = async (req, res) => {
       });
     }
 
-    // Early return if phone exists (optimized query)
-    if (phone) {
-      const existingClient = await Client.findOne({ phone }).select('_id').lean();
-      if (existingClient) {
-        return res.status(409).json({
+    // Phone validation (strict 10 digits only)
+    if (number) {
+      const phoneTrimmed = number.trim();
+      
+      if (!/^\d{10}$/.test(phoneTrimmed)) {
+        return res.status(400).json({
           success: false,
-          message: 'Client with this phone already exists'
+          message: 'Phone must be exactly 10 digits with no spaces or symbols'
         });
       }
     }
 
-    // Get the last client's ID to increment
+    // Check for existing client (both name AND number) in a single query
+    const existingClient = await Client.findOne({
+      $or: [
+        { clientName: nameTrimmed },
+        ...(number ? [{ number: number.trim() }] : [])
+      ]
+    }).select('clientName number').lean();
+
+    if (existingClient) {
+      if (existingClient.clientName === nameTrimmed) {
+        return res.status(409).json({
+          success: false,
+          message: 'Client with this name already exists'
+        });
+      }
+      if (number && existingClient.number === number.trim()) {
+        return res.status(409).json({
+          success: false,
+          message: 'Client with this number already exists'
+        });
+      }
+    }
+
+    // Auto-increment ID logic
     const lastClient = await Client.findOne()
-      .sort({ id: -1 }) // Sort by id descending
+      .sort({ id: -1 })
       .select('id')
       .lean();
 
     const nextId = lastClient ? lastClient.id + 1 : 1;
 
-    // Optimized client creation with auto-increment ID
+    // Client data preparation
     const clientData = {
-      id: nextId, // Auto-incremented ID
+      id: nextId,
       clientName: nameTrimmed,
-      ...(phone && { phone: phone.trim() }),
+      ...(number && { number: number.trim() }),
       ...(address && { address: address.trim() }),
       createdAt: new Date(),
       updatedAt: new Date()
@@ -79,29 +113,25 @@ exports.registerClient = async (req, res) => {
 
     const savedClient = await Client.create(clientData);
 
-    // Optimized response
-    const responseData = {
-      id: savedClient.id, // Return the auto-incremented ID
-      clientName: savedClient.clientName,
-      ...(savedClient.phone && { phone: savedClient.phone })
-    };
-
+    // Response
     return res.status(201).json({
       success: true,
       message: 'Client registered successfully',
-      data: responseData
+      data: {
+        id: savedClient.id,
+        clientName: savedClient.clientName,
+        ...(savedClient.number && { number: savedClient.number })
+      }
     });
 
   } catch (error) {
     console.error('Client registration error:', error);
     
-    // Handle duplicate key error separately
     if (error.code === 11000) {
+      const field = error.message.includes('number') ? 'number' : 'name';
       return res.status(409).json({
         success: false,
-        message: error.message.includes('phone') 
-          ? 'Client with this phone already exists'
-          : 'Duplicate entry detected'
+        message: `Client with this ${field} already exists`
       });
     }
 
