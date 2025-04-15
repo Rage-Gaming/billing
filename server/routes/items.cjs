@@ -3,6 +3,6 @@ const router = express.Router();
 const { createItem, searchItems } = require('../controllers/items.cjs');
 
 router.post('/create', createItem);
-router.get('/search', searchItems);
+router.post('/search', searchItems);
 
 module.exports = router;

@@ -8,52 +8,110 @@ import { useState } from 'react';
 import LineItemComponent from '../components/InvoiceLineItems';
 import FormDialog from '../components/Modal';
 import axios from 'axios';
+import { useEffect } from 'react';
 
 const Invoice = () => {
   const { customer } = useCustomer();
   const [isModelOpen, setModelIsOpen] = useState(false);
   const [modalName, setModalName] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [loading, setLoading] = useState(false);
   const [lineItems, setLineItems] = useState([
-    { description: '', qty: '', rate: '', amount: '0.00' }
+    { description: '', qty: '1', rate: '', amount: '0.00' }
   ]);
-  const [itemsDatabase, setItemsDatabase] = useState([
-    { id: 1, description: "Web Development", rate: 75.00 },
-    { id: 2, description: "Graphic Design", rate: 50.00 },
-    { id: 3, description: "SEO Services", rate: 100.00 },
-    { id: 4, description: "Content Writing", rate: 30.00 },
-    { id: 5, description: "Consultation", rate: 120.00 },
-  ]);
+  const [itemsDatabase, setItemsDatabase] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const formFields = [
     {
       name: 'name',
-      label: 'Name',
+      label: 'Item Name',
       type: 'text',
       required: true,
-      defaultValue: modalName
+      defaultValue: modalName.charAt(0).toUpperCase() + modalName.slice(1)
     },
     {
       name: 'amount',
-      label: 'Amount',
+      label: 'Rate',
       type: 'number',
       required: true,
-      inputProps: { maxLength: 10 }
+      inputProps: { 
+        maxLength: 10,
+        step: "0.01",
+        min: "0"
+      }
     }
   ];
 
+  useEffect(() => {
+    const fetchItems = async () => {
+      if (searchQuery.trim().length < 2) {
+        setItemsDatabase([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await axios.post('http://localhost:5000/api/items/search', { searchQuery });
+        if (response.data.success) {
+          setItemsDatabase(response.data.data);
+        } else {
+          setItemsDatabase([]);
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        setItemsDatabase([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      fetchItems();
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery]);
+
   const handleNewItemFormSubmit = async (data) => {
-    console.log('Form submitted:', data);
     const newItem = {
       itemName: data.name,
       amount: data.amount,
     };
-    const response = await axios.post('http://localhost:5000/api/items/create', newItem)
-    if (response.status === 201) {
-      setModelIsOpen(false);
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/items/create', newItem);
+      if (response.status === 201) {
+        const createdItem = response.data.data;
+        
+        setItemsDatabase(prevItems => [
+          ...prevItems,
+          {
+            id: createdItem._id || Math.max(...prevItems.map(item => item.id), 0) + 1,
+            itemName: createdItem.itemName,
+            amount: createdItem.amount,
+          }
+        ]);
+
+        setLineItems(prevItems => {
+          const updatedItems = [...prevItems];
+          const currentIndex = updatedItems.length - 1;
+          updatedItems[currentIndex] = {
+            ...updatedItems[currentIndex],
+            description: createdItem.itemName,
+            rate: createdItem.amount.toString(),
+            qty: updatedItems[currentIndex].qty || '1',
+            amount: (parseFloat(createdItem.amount) * parseFloat(updatedItems[currentIndex].qty || 1)).toFixed(2)
+          };
+          return updatedItems;
+        });
+
+        setModelIsOpen(false);
+      }
+    } catch (error) {
+      console.error('Error creating item:', error);
     }
-      
-  }
+  };
 
   const handleItemChange = (index, updatedItem) => {
     const newItems = [...lineItems];
@@ -62,7 +120,7 @@ const Invoice = () => {
   };  
 
   const handleAddLine = () => {
-    setLineItems([...lineItems, { description: '', qty: '', rate: '', amount: '0.00' }]);
+    setLineItems([...lineItems, { description: '', qty: '1', rate: '', amount: '0.00' }]);
   };
 
   const handleRemoveLine = (index) => {
@@ -74,46 +132,24 @@ const Invoice = () => {
 
   const handleCreateNewItem = (description) => {
     setModalName(description);
-    const newItem = {
-      id: Math.max(...itemsDatabase.map(item => item.id), 0) + 1,
-      description,
-      rate: 0,
-      qty: 1
-    };
     setModelIsOpen(true);
-    
-    setItemsDatabase([...itemsDatabase, newItem]);
-    
-    // Update the current line item with the new item
-    const updatedItems = [...lineItems];
-    const currentIndex = updatedItems.length - 1;
-    updatedItems[currentIndex] = {
-      ...updatedItems[currentIndex],
-      description: newItem.description,
-      rate: newItem.rate.toString(),
-      qty: newItem.qty.toString(),
-      amount: (newItem.rate * newItem.qty).toFixed(2)
-    };
-    
-    setLineItems(updatedItems);
   };
 
   const calculateTotal = () => {
     return lineItems.reduce((sum, item) => {
-      return sum + (parseFloat(item.amount)) || 0;
+      return sum + (parseFloat(item.amount) || 0);
     }, 0).toFixed(2);
   };
 
   const calculateGst = () => {
     const total = parseFloat(calculateTotal()) || 0;
-    return parseFloat((total * 0.18));
+    return (total * 0.18).toFixed(2);
   };
 
   const totalWithGst = () => {
     const total = parseFloat(calculateTotal()) + parseFloat(calculateGst()) || 0;
-    return parseFloat(total);
-
-  }
+    return total.toFixed(2);
+  };
 
   if (!customer) {
     return (
@@ -167,31 +203,9 @@ const Invoice = () => {
                 '& .MuiInputBase-input': {
                   color: 'white',
                 },
-                '& .MuiInputLabel-root': {
-                  color: 'white',
-                  '&.Mui-focused': {
-                    color: 'white'
-                  }
-                },
                 '& .MuiOutlinedInput-notchedOutline': {
                   borderColor: 'white',
                 },
-                '& .MuiOutlinedInput-root': {
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'white',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'white',
-                  },
-                },
-                '& input[type="date"]::-webkit-calendar-picker-indicator': {
-                  filter: 'invert(1)',
-                  cursor: 'pointer',
-                  opacity: 1,
-                  '&:hover': {
-                    opacity: 0.8
-                  }
-                }
               }}
             />
           </div>
@@ -217,6 +231,7 @@ const Invoice = () => {
               itemsList={itemsDatabase}
               onItemChange={handleItemChange}
               onAddLine={handleAddLine}
+              onInputChange={(e) => setSearchQuery(e.target.value)}
               onRemoveLine={handleRemoveLine}
               onCreateNewItem={handleCreateNewItem}
               isLast={index === lineItems.length - 1}
@@ -225,10 +240,10 @@ const Invoice = () => {
           ))}
 
           <div className='flex justify-end items-center mt-8 text-white'>
-            <div className='flexl flex-col items-center'>
+            <div className='flex flex-col items-end'>
               <div className='text-xl font-bold mb-4'>Sub Total: ${calculateTotal()}</div>
               <div className='text-xl font-bold mb-4'>Tax (18%): ${calculateGst()}</div>
-              <div className='text-xl font-bold '>Total: ${totalWithGst()}</div>
+              <div className='text-xl font-bold'>Total: ${totalWithGst()}</div>
             </div>
           </div>
 
@@ -243,14 +258,14 @@ const Invoice = () => {
           </div>
         </div>
         <FormDialog
-        open={isModelOpen}
-        onClose={() => setModelIsOpen(false)}
-        title="Create new item"
-        description="Please enter the details"
-        fields={formFields}
-        onSubmit={handleNewItemFormSubmit}
-        submitText="Save"
-      />
+          open={isModelOpen}
+          onClose={() => setModelIsOpen(false)}
+          title="Create new item"
+          description="Please enter the details"
+          fields={formFields}
+          onSubmit={handleNewItemFormSubmit}
+          submitText="Save"
+        />
       </div>
     </div>
   );
