@@ -7,6 +7,7 @@ import { TextField } from '@mui/material';
 import { useState } from 'react';
 import LineItemComponent from '../components/InvoiceLineItems';
 import FormDialog from '../components/Modal';
+import axios from 'axios';
 
 const Invoice = () => {
   const { customer } = useCustomer();
@@ -41,22 +42,24 @@ const Invoice = () => {
     }
   ];
 
-  const handleFormSubmit = (data) => {
-    const newCustomer = {
-      value: Date.now().toString(),
-      label: data.name,
-      address: data.address,
-      number: data.number
+  const handleNewItemFormSubmit = async (data) => {
+    console.log('Form submitted:', data);
+    const newItem = {
+      itemName: data.name,
+      amount: data.amount,
     };
-    setModelIsOpen(false);
-    setItemsDatabase([...itemsDatabase, newCustomer]);
+    const response = await axios.post('http://localhost:5000/api/items/create', newItem)
+    if (response.status === 201) {
+      setModelIsOpen(false);
+    }
+      
   }
 
   const handleItemChange = (index, updatedItem) => {
     const newItems = [...lineItems];
     newItems[index] = updatedItem;
     setLineItems(newItems);
-  };
+  };  
 
   const handleAddLine = () => {
     setLineItems([...lineItems, { description: '', qty: '', rate: '', amount: '0.00' }]);
@@ -70,6 +73,7 @@ const Invoice = () => {
   };
 
   const handleCreateNewItem = (description) => {
+    setModalName(description);
     const newItem = {
       id: Math.max(...itemsDatabase.map(item => item.id), 0) + 1,
       description,
@@ -149,7 +153,7 @@ const Invoice = () => {
         <div className='text-white mb-4 flex justify-between'>
           <div>
             <h1 className='font-bold'>Bill To:</h1>
-            <h1>{customer.label}</h1>
+            <h1>{customer.clientName}</h1>
             <h1>{customer.address}</h1>
             <h1>{customer.number}</h1>
           </div>
@@ -244,7 +248,7 @@ const Invoice = () => {
         title="Create new item"
         description="Please enter the details"
         fields={formFields}
-        onSubmit={handleFormSubmit}
+        onSubmit={handleNewItemFormSubmit}
         submitText="Save"
       />
       </div>

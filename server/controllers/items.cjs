@@ -2,13 +2,14 @@ const Item = require('../models/Item.cjs');
 
 exports.createItem = async (req, res) => {
   try {
-    const { name, rate } = req.body;
+    const { itemName, amount } = req.body;
+    console.log('Creating item:', req.body);
     
-    if (!name || !rate) {
+    if (!itemName || !amount) {
       return res.status(400).json({ error: 'Name and rate are required' });
     }
 
-    const newItem = new Item({ name, rate });
+    const newItem = new Item({ itemName, amount });
     await newItem.save();
 
     res.status(201).json({ message: 'Item created successfully', item: newItem });
