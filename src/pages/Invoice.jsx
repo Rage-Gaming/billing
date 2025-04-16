@@ -14,13 +14,35 @@ const Invoice = () => {
   const { customer } = useCustomer();
   const [isModelOpen, setModelIsOpen] = useState(false);
   const [modalName, setModalName] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
-  const [lineItems, setLineItems] = useState([
-    { description: '', qty: '1', rate: '', amount: '0.00' }
-  ]);
   const [itemsDatabase, setItemsDatabase] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Comprehensive invoice data state
+  const [invoiceData, setInvoiceData] = useState({
+    client: {
+      name: '',
+      address: '',
+      phone: ''
+    },
+    invoiceInfo: {
+      date: new Date().toISOString().split('T')[0],
+      number: `INV-${Math.floor(Math.random() * 10000)}`
+    },
+    items: [
+      {
+        description: '',
+        qty: '1',
+        rate: '',
+        amount: '0.00'
+      }
+    ],
+    totals: {
+      subTotal: 0,
+      gst: 0,
+      total: 0
+    }
+  });
 
   const formFields = [
     {
@@ -43,6 +65,51 @@ const Invoice = () => {
     }
   ];
 
+  // Update client info when customer changes
+  useEffect(() => {
+    if (customer) {
+      setInvoiceData(prev => ({
+        ...prev,
+        client: {
+          name: customer.clientName,
+          address: customer.address,
+          phone: customer.number
+        }
+      }));
+    }
+  }, [customer]);
+
+  // Calculate totals and update invoice data when items or date change
+  useEffect(() => {
+    const subTotal = invoiceData.items.reduce((sum, item) => {
+      return sum + (parseFloat(item.amount) || 0);
+    }, 0);
+    
+    const gst = subTotal * 0.18;
+    const total = subTotal + gst;
+
+    setInvoiceData(prev => ({
+      ...prev,
+      totals: {
+        subTotal: parseFloat(subTotal.toFixed(2)),
+        gst: parseFloat(gst.toFixed(2)),
+        total: parseFloat(total.toFixed(2))
+      }
+    }));
+  }, [invoiceData.items]);
+
+  // Handle date change
+  const handleDateChange = (date) => {
+    setInvoiceData(prev => ({
+      ...prev,
+      invoiceInfo: {
+        ...prev.invoiceInfo,
+        date
+      }
+    }));
+  };
+
+  // Fetch items from API
   useEffect(() => {
     const fetchItems = async () => {
       if (searchQuery.trim().length < 2) {
@@ -93,8 +160,8 @@ const Invoice = () => {
           }
         ]);
 
-        setLineItems(prevItems => {
-          const updatedItems = [...prevItems];
+        setInvoiceData(prev => {
+          const updatedItems = [...prev.items];
           const currentIndex = updatedItems.length - 1;
           updatedItems[currentIndex] = {
             ...updatedItems[currentIndex],
@@ -103,7 +170,11 @@ const Invoice = () => {
             qty: updatedItems[currentIndex].qty || '1',
             amount: (parseFloat(createdItem.amount) * parseFloat(updatedItems[currentIndex].qty || 1)).toFixed(2)
           };
-          return updatedItems;
+          
+          return {
+            ...prev,
+            items: updatedItems
+          };
         });
 
         setModelIsOpen(false);
@@ -114,41 +185,35 @@ const Invoice = () => {
   };
 
   const handleItemChange = (index, updatedItem) => {
-    const newItems = [...lineItems];
-    newItems[index] = updatedItem;
-    setLineItems(newItems);
+    setInvoiceData(prev => {
+      const newItems = [...prev.items];
+      newItems[index] = updatedItem;
+      return {
+        ...prev,
+        items: newItems
+      };
+    });
   };  
 
   const handleAddLine = () => {
-    setLineItems([...lineItems, { description: '', qty: '1', rate: '', amount: '0.00' }]);
+    setInvoiceData(prev => ({
+      ...prev,
+      items: [...prev.items, { description: '', qty: '1', rate: '', amount: '0.00' }]
+    }));
   };
 
   const handleRemoveLine = (index) => {
-    if (lineItems.length > 1) {
-      const newItems = lineItems.filter((_, i) => i !== index);
-      setLineItems(newItems);
+    if (invoiceData.items.length > 1) {
+      setInvoiceData(prev => ({
+        ...prev,
+        items: prev.items.filter((_, i) => i !== index)
+      }));
     }
   };
 
   const handleCreateNewItem = (description) => {
     setModalName(description);
     setModelIsOpen(true);
-  };
-
-  const calculateTotal = () => {
-    return lineItems.reduce((sum, item) => {
-      return sum + (parseFloat(item.amount) || 0);
-    }, 0).toFixed(2);
-  };
-
-  const calculateGst = () => {
-    const total = parseFloat(calculateTotal()) || 0;
-    return (total * 0.18).toFixed(2);
-  };
-
-  const totalWithGst = () => {
-    const total = parseFloat(calculateTotal()) + parseFloat(calculateGst()) || 0;
-    return total.toFixed(2);
   };
 
   if (!customer) {
@@ -189,16 +254,16 @@ const Invoice = () => {
         <div className='text-white mb-4 flex justify-between'>
           <div>
             <h1 className='font-bold'>Bill To:</h1>
-            <h1>{customer.clientName}</h1>
-            <h1>{customer.address}</h1>
-            <h1>{customer.number}</h1>
+            <h1>{invoiceData.client.name}</h1>
+            <h1>{invoiceData.client.address}</h1>
+            <h1>{invoiceData.client.phone}</h1>
           </div>
           <div className='flex items-center justify-center'>
             <h1 className='font-bold mr-2'>Invoice Date:</h1>
             <TextField
               type="date"
-              value={invoiceDate}
-              onChange={(e) => setInvoiceDate(e.target.value)}
+              value={invoiceData.invoiceInfo.date}
+              onChange={(e) => handleDateChange(e.target.value)}
               sx={{
                 '& .MuiInputBase-input': {
                   color: 'white',
@@ -223,7 +288,7 @@ const Invoice = () => {
             </div>
           </div>
           
-          {lineItems.map((item, index) => (
+          {invoiceData.items.map((item, index) => (
             <LineItemComponent
               key={index}
               index={index}
@@ -234,16 +299,17 @@ const Invoice = () => {
               onInputChange={(e) => setSearchQuery(e.target.value)}
               onRemoveLine={handleRemoveLine}
               onCreateNewItem={handleCreateNewItem}
-              isLast={index === lineItems.length - 1}
-              autoFocus={index === lineItems.length - 1 && lineItems.length > 1}
+              isLast={index === invoiceData.items.length - 1}
+              autoFocus={index === invoiceData.items.length - 1 && invoiceData.items.length > 1}
+              loading={loading}
             />
           ))}
 
           <div className='flex justify-end items-center mt-8 text-white'>
             <div className='flex flex-col items-end'>
-              <div className='text-xl font-bold mb-4'>Sub Total: ${calculateTotal()}</div>
-              <div className='text-xl font-bold mb-4'>Tax (18%): ${calculateGst()}</div>
-              <div className='text-xl font-bold'>Total: ${totalWithGst()}</div>
+              <div className='text-xl font-bold mb-4'>Sub Total: ${invoiceData.totals.subTotal}</div>
+              <div className='text-xl font-bold mb-4'>Tax (18%): ${invoiceData.totals.gst}</div>
+              <div className='text-xl font-bold'>Total: ${invoiceData.totals.total}</div>
             </div>
           </div>
 
@@ -251,7 +317,11 @@ const Invoice = () => {
             <Button 
               variant="contained" 
               color="primary"
-              onClick={() => console.log('Submitting invoice:', { customer, date: invoiceDate, lineItems, subTotal: calculateTotal(), gst: calculateGst(), total: totalWithGst() })}
+              onClick={() => {
+                console.log('Complete Invoice Data:', invoiceData);
+                // Here you would typically send this to your backend
+                // axios.post('/api/invoices', invoiceData);
+              }}
             >
               Generate Invoice
             </Button>
