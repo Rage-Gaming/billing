@@ -190,7 +190,10 @@ const Invoice = () => {
   const handleGenerateInvoice = async () => {
     try {
       const { status } = await axios.post(`${API_BASE_URL}/invoices/saveInvoice`, invoiceData);
-      if (status === 201) window.print();
+      if (status === 201) {
+        window.print();
+        window.location.href = '/customer?invoiceStatus=success';
+      }
     } catch (error) {
       if (error.response?.status === 409) {
         toast.error('Invoice already exists!');

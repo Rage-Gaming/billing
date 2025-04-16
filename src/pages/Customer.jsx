@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
 import { useCustomer } from '../context/CustomerContext';
-import { useNavigate } from "react-router-dom";
-import Button from '@mui/material/Button';
-import FormDialog from '../components/Modal';
-import NavBar from '../components/NavBar';
 import SearchableDropdown from '../components/Dropdown';
+import { useNavigate } from "react-router-dom";
+import FormDialog from '../components/Modal';
+import { useState, useEffect } from 'react';
+import Button from '@mui/material/Button';
+import NavBar from '../components/NavBar';
+import { toast } from 'sonner';
 import axios from 'axios';
 
 export default function Customer() {
@@ -19,6 +20,20 @@ export default function Customer() {
   const [loading, setLoading] = useState(false);
 
   const [clients, setClients] = useState([]);
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const invoiceStatus = queryParams.get("invoiceStatus");
+  
+    if (invoiceStatus === "success") {
+      // Use a timeout to ensure everything is mounted
+      setTimeout(() => {
+        if (!window.__toast_shown__) {
+          toast.success("Invoice generated successfully!");
+          window.__toast_shown__ = true; // prevent duplicate toasts
+        }
+      }, 0);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchClients = async () => {
