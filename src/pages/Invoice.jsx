@@ -19,6 +19,7 @@ const Invoice = () => {
   const [itemsDatabase, setItemsDatabase] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]); // Separate date variable
+  const [invoiceNumber, setInvoiceNumber] = useState(``); // Invoice number state
 
   // Comprehensive invoice data state
   const [invoiceData, setInvoiceData] = useState({
@@ -29,7 +30,7 @@ const Invoice = () => {
     },
     invoiceInfo: {
       date: '', // Will be set from the invoiceDate variable
-      number: `INV-${Math.floor(Math.random() * 10000)}`
+      number: invoiceNumber
     },
     items: [
       {
@@ -77,20 +78,43 @@ const Invoice = () => {
       }
     }
   ];
+  console.log(customer);
 
   // Update client info when customer changes
   useEffect(() => {
-    if (customer) {
-      setInvoiceData(prev => ({
-        ...prev,
-        client: {
-          name: customer.clientName,
-          address: customer.address,
-          phone: customer.number
+    if (!customer) return; // Early return if no customer
+  
+    const fetchInvoiceNumber = async () => {
+      try {
+        const response = await axios.post('http://localhost:5000/api/invoices/currentInvoiceNo');
+        
+        if (response.status === 200) {
+          const nextNumber = response.data.nextNumber;
+          const invoiceNumber = `BND-${nextNumber}`;
+          
+          setInvoiceNumber(invoiceNumber);
+          setInvoiceData(prev => ({
+            ...prev,
+            client: {
+              name: customer.clientName,
+              address: customer.address,
+              phone: customer.number
+            },
+            invoiceInfo: {
+              ...prev.invoiceInfo,
+              number: invoiceNumber
+            }
+          }));
         }
-      }));
-    }
-  }, [customer]);
+      } catch (error) {
+        toast.error('Error fetching invoice number!');
+        console.error('Invoice number fetch error:', error);
+        // Consider setting an error state if needed
+      }
+    };
+  
+    fetchInvoiceNumber();
+  }, [customer]); // Make sure all dependencies are listed
 
   // Calculate totals and update invoice data when items change
   useEffect(() => {
@@ -110,11 +134,6 @@ const Invoice = () => {
       }
     }));
   }, [invoiceData.items]);
-
-  // Handle date change
-  const handleDateChange = (date) => {
-    setInvoiceDate(date); // Update the separate date variable
-  };
 
   // Fetch items from API
   useEffect(() => {
@@ -266,37 +285,42 @@ const Invoice = () => {
             <h1>{invoiceData.client.address}</h1>
             <h1>{invoiceData.client.phone}</h1>
           </div>
-          <div className='flex items-center justify-center'>
-            <h1 className='font-bold mr-2'>Invoice Date:</h1>
-            <TextField
-              type="date"
-              value={invoiceDate}
-              onChange={(e) => setInvoiceDate(e.target.value)}
-              sx={{
-                '& .MuiInputBase-input': {
-                  color: 'white',
-                },
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: 'white',
-                },
-                '& .MuiOutlinedInput-root': {
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'white',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'white',
-                  },
-                },
-                '& input[type="date"]::-webkit-calendar-picker-indicator': {
-                  filter: 'invert(1)',
-                  cursor: 'pointer',
-                  opacity: 1,
-                  '&:hover': {
-                    opacity: 0.8
-                  }
-                }
-              }}
-            />
+          <div >
+              <div className='flex items-center mb-2'>
+                <h1 className='font-bold mr-2'>Invoice Date:</h1>
+                <TextField
+                  type="date"
+                  value={invoiceDate}
+                  onChange={(e) => setInvoiceDate(e.target.value)}
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      color: 'white',
+                    },
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'white',
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'white',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: 'white',
+                      },
+                    },
+                    '& input[type="date"]::-webkit-calendar-picker-indicator': {
+                      filter: 'invert(1)',
+                      cursor: 'pointer',
+                      opacity: 1,
+                      '&:hover': {
+                        opacity: 0.8
+                      }
+                    }
+                  }}
+                />
+              </div>
+            <div className='flex items-center mb-2'>
+              <h1 className='font-bold mr-2'>Invoice Number: {invoiceNumber}</h1>
+            </div>
           </div>
         </div>
 

@@ -1,29 +1,35 @@
 const InvoiceCounter = require('../models/InvoiceCounter.cjs');
 const Invoice = require('../models/Invoice.cjs');
 
-exports.getNextInvoiceNumber = async (req, res) => {
+exports.getCurrentInvoiceNumber = async (req, res) => {
   try {
     const counter = await InvoiceCounter.find({
-      
-    }
-    );
-    res.json({ nextNumber: counter.seq });
+      _id: 'invoice'
+    }).exec();
+    res.json({ nextNumber: counter[0].seq});
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+
+  
 };
 
-function upDateInvoiceCounter() {
+async function updateInvoiceCounter() {  // Fixed typo in function name (lowercase 'd')
   try {
-    const counter = InvoiceCounter.findByIdAndUpdate(
-      'invoice',
+    const counter = await InvoiceCounter.findOneAndUpdate(
+      { _id: 'invoice' },
       { $inc: { seq: 1 } },
       { new: true, upsert: true }
     );
+    
+    if (!counter) {
+      throw new Error('Failed to create or update invoice counter');
+    }
+    
     return counter.seq;
-
   } catch (err) {
     console.error('Error updating invoice counter:', err);
+    throw err;  // Re-throw the error for the caller to handle
   }
 }
 
@@ -40,7 +46,7 @@ exports.saveInvoice = async (req, res) => {
       },
       invoiceInfo: {
         date: invoiceData.invoiceInfo.date, // Use provided date
-        // number : invoiceData.invoiceInfo.number // Uncomment if you want to use invoice number
+        number : invoiceData.invoiceInfo.number // Uncomment if you want to use invoice number
       },
       items: invoiceData.items.map(item => ({
         description: item.description,

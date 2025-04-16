@@ -24,12 +24,12 @@ const InvoiceSchema = new mongoose.Schema({
             required: [true, 'Invoice date is required'],
             default: Date.now
         },
-        // number: {
-        //   type: String,
-        //   required: [true, 'Invoice number is required'],
-        //   unique: true,
-        //   trim: true
-        // }
+        number: {
+          type: String,
+          required: [true, 'Invoice number is required'],
+          unique: true,
+          trim: true
+        }
     },
     items: [{
         description: {
