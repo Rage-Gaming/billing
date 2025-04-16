@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 
-const CustomerContext = createContext();
+const CustomerContext = createContext(undefined);
 
 export const CustomerProvider = ({ children }) => {
   const [customer, setCustomer] = useState(null);

@@ -3,16 +3,29 @@ const Invoice = require('../models/Invoice.cjs');
 
 exports.getNextInvoiceNumber = async (req, res) => {
   try {
-    const counter = await InvoiceCounter.findByIdAndUpdate(
-      'invoice',
-      { $inc: { seq: 1 } },
-      { new: true, upsert: true }
+    const counter = await InvoiceCounter.find({
+      
+    }
     );
     res.json({ nextNumber: counter.seq });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
+function upDateInvoiceCounter() {
+  try {
+    const counter = InvoiceCounter.findByIdAndUpdate(
+      'invoice',
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+    return counter.seq;
+
+  } catch (err) {
+    console.error('Error updating invoice counter:', err);
+  }
+}
 
 exports.saveInvoice = async (req, res) => {
   try {
@@ -46,7 +59,8 @@ exports.saveInvoice = async (req, res) => {
     await invoice.validate();
     
     // Save to MongoDB
-    const savedInvoice = await invoice.save();
+    await invoice.save();
+    upDateInvoiceCounter();
     
     res.status(201).json({
       success: true,

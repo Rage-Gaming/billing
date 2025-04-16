@@ -7,7 +7,7 @@ import NavBar from '../components/NavBar';
 import SearchableDropdown from '../components/Dropdown';
 import axios from 'axios';
 
-function Customer() {
+export default function Customer() {
   const { setCustomer } = useCustomer();
   const navigate = useNavigate();
   const [isModelOpen, setModelIsOpen] = useState(false);
@@ -146,5 +146,3 @@ function Customer() {
     </div>
   );
 }
-
-export default Customer;
