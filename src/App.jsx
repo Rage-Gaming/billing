@@ -7,6 +7,7 @@ import Invoice from './pages/Invoice.jsx';
 import Customer from './pages/Customer.jsx';
 import { CustomerProvider } from './context/CustomerContext';
 import Admin from './pages/admin/Admin.jsx';
+import { Toaster } from 'sonner'
 
 // Create a ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
@@ -45,6 +46,7 @@ const App = () => {
           </Routes>
         </CustomerProvider>
       </Router>
+      <Toaster position="bottom-center"/>
     </section>
   );
 }

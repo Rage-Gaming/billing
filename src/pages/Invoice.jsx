@@ -9,6 +9,7 @@ import LineItemComponent from '../components/InvoiceLineItems';
 import FormDialog from '../components/Modal';
 import axios from 'axios';
 import { useEffect } from 'react';
+import { toast } from 'sonner'
 
 const Invoice = () => {
   const { customer } = useCustomer();
@@ -17,6 +18,7 @@ const Invoice = () => {
   const [loading, setLoading] = useState(false);
   const [itemsDatabase, setItemsDatabase] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]); // Separate date variable
 
   // Comprehensive invoice data state
   const [invoiceData, setInvoiceData] = useState({
@@ -26,7 +28,7 @@ const Invoice = () => {
       phone: ''
     },
     invoiceInfo: {
-      date: new Date().toISOString().split('T')[0],
+      date: '', // Will be set from the invoiceDate variable
       number: `INV-${Math.floor(Math.random() * 10000)}`
     },
     items: [
@@ -43,6 +45,17 @@ const Invoice = () => {
       total: 0
     }
   });
+
+  // Sync invoice date with invoiceData
+  useEffect(() => {
+    setInvoiceData(prev => ({
+      ...prev,
+      invoiceInfo: {
+        ...prev.invoiceInfo,
+        date: invoiceDate
+      }
+    }));
+  }, [invoiceDate]);
 
   const formFields = [
     {
@@ -79,7 +92,7 @@ const Invoice = () => {
     }
   }, [customer]);
 
-  // Calculate totals and update invoice data when items or date change
+  // Calculate totals and update invoice data when items change
   useEffect(() => {
     const subTotal = invoiceData.items.reduce((sum, item) => {
       return sum + (parseFloat(item.amount) || 0);
@@ -100,13 +113,7 @@ const Invoice = () => {
 
   // Handle date change
   const handleDateChange = (date) => {
-    setInvoiceData(prev => ({
-      ...prev,
-      invoiceInfo: {
-        ...prev.invoiceInfo,
-        date
-      }
-    }));
+    setInvoiceDate(date); // Update the separate date variable
   };
 
   // Fetch items from API
@@ -234,6 +241,7 @@ const Invoice = () => {
     );
   }
 
+
   return (
     <div>
       <div className='m-5'>
@@ -262,8 +270,8 @@ const Invoice = () => {
             <h1 className='font-bold mr-2'>Invoice Date:</h1>
             <TextField
               type="date"
-              value={invoiceData.invoiceInfo.date}
-              onChange={(e) => handleDateChange(e.target.value)}
+              value={invoiceDate}
+              onChange={(e) => setInvoiceDate(e.target.value)}
               sx={{
                 '& .MuiInputBase-input': {
                   color: 'white',
@@ -271,6 +279,22 @@ const Invoice = () => {
                 '& .MuiOutlinedInput-notchedOutline': {
                   borderColor: 'white',
                 },
+                '& .MuiOutlinedInput-root': {
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'white',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'white',
+                  },
+                },
+                '& input[type="date"]::-webkit-calendar-picker-indicator': {
+                  filter: 'invert(1)',
+                  cursor: 'pointer',
+                  opacity: 1,
+                  '&:hover': {
+                    opacity: 0.8
+                  }
+                }
               }}
             />
           </div>
@@ -317,10 +341,17 @@ const Invoice = () => {
             <Button 
               variant="contained" 
               color="primary"
-              onClick={() => {
-                console.log('Complete Invoice Data:', invoiceData);
-                // Here you would typically send this to your backend
-                // axios.post('/api/invoices', invoiceData);
+              onClick={async () => {
+                await axios.post('http://localhost:5000/api/invoices/saveInvoice', invoiceData).then(response => {
+                  if (response.status === 201) {
+                    window.print();
+                  }
+                }).catch(error => {
+                  if (error.response.status === 409) {
+                    return toast.error('Invoice already exists!');
+                  }
+                  toast.error('Error saving invoice. Please try again.');
+                });
               }}
             >
               Generate Invoice
