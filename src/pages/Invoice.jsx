@@ -4,12 +4,38 @@ import Button from '@mui/material/Button';
 import NavBar from '../components/NavBar';
 import { useCustomer } from '../context/CustomerContext';
 import { TextField } from '@mui/material';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import LineItemComponent from '../components/InvoiceLineItems';
 import FormDialog from '../components/Modal';
 import axios from 'axios';
-import { useEffect } from 'react';
-import { toast } from 'sonner'
+import { toast } from 'sonner';
+
+const API_BASE_URL = 'http://localhost:5000/api';
+
+const initialInvoiceData = {
+  client: {
+    name: '',
+    address: '',
+    phone: ''
+  },
+  invoiceInfo: {
+    date: new Date().toISOString().split('T')[0],
+    number: ''
+  },
+  items: [
+    {
+      description: '',
+      qty: '1',
+      rate: '',
+      amount: '0.00'
+    }
+  ],
+  totals: {
+    subTotal: 0,
+    gst: 0,
+    total: 0
+  }
+};
 
 const Invoice = () => {
   const { customer } = useCustomer();
@@ -18,81 +44,30 @@ const Invoice = () => {
   const [loading, setLoading] = useState(false);
   const [itemsDatabase, setItemsDatabase] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]); // Separate date variable
-  const [invoiceNumber, setInvoiceNumber] = useState(``); // Invoice number state
+  const [invoiceData, setInvoiceData] = useState(initialInvoiceData);
 
-  // Comprehensive invoice data state
-  const [invoiceData, setInvoiceData] = useState({
-    client: {
-      name: '',
-      address: '',
-      phone: ''
-    },
-    invoiceInfo: {
-      date: '', // Will be set from the invoiceDate variable
-      number: invoiceNumber
-    },
-    items: [
-      {
-        description: '',
-        qty: '1',
-        rate: '',
-        amount: '0.00'
-      }
-    ],
-    totals: {
-      subTotal: 0,
-      gst: 0,
-      total: 0
-    }
-  });
+  // Memoized calculation of totals
+  const calculateTotals = useCallback((items) => {
+    const subTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount)) || 0, 0);
+    const gst = subTotal * 0.18;
+    return {
+      subTotal: parseFloat(subTotal.toFixed(2)),
+      gst: parseFloat(gst.toFixed(2)),
+      total: parseFloat((subTotal + gst).toFixed(2))
+    };
+  }, []);
 
-  // Sync invoice date with invoiceData
+  // Update client info and fetch invoice number when customer changes
   useEffect(() => {
-    setInvoiceData(prev => ({
-      ...prev,
-      invoiceInfo: {
-        ...prev.invoiceInfo,
-        date: invoiceDate
-      }
-    }));
-  }, [invoiceDate]);
+    if (!customer) return;
 
-  const formFields = [
-    {
-      name: 'name',
-      label: 'Item Name',
-      type: 'text',
-      required: true,
-      defaultValue: modalName.charAt(0).toUpperCase() + modalName.slice(1)
-    },
-    {
-      name: 'amount',
-      label: 'Rate',
-      type: 'number',
-      required: true,
-      inputProps: { 
-        maxLength: 10,
-        step: "0.01",
-        min: "0"
-      }
-    }
-  ];
-  console.log(customer);
-
-  // Update client info when customer changes
-  useEffect(() => {
-    if (!customer) return; // Early return if no customer
-  
     const fetchInvoiceNumber = async () => {
       try {
-        const response = await axios.post('http://localhost:5000/api/invoices/currentInvoiceNo');
+        const response = await axios.post(`${API_BASE_URL}/invoices/currentInvoiceNo`);
         
         if (response.status === 200) {
-          const nextNumber = response.data.nextNumber;
-          const invoiceNumber = `BND-${nextNumber}`;
+          const invoiceNumber = `BND-${response.data.nextNumber}`;
           
-          setInvoiceNumber(invoiceNumber);
           setInvoiceData(prev => ({
             ...prev,
             client: {
@@ -102,40 +77,29 @@ const Invoice = () => {
             },
             invoiceInfo: {
               ...prev.invoiceInfo,
-              number: invoiceNumber
+              number: invoiceNumber,
+              date: prev.invoiceInfo.date
             }
           }));
         }
       } catch (error) {
         toast.error('Error fetching invoice number!');
         console.error('Invoice number fetch error:', error);
-        // Consider setting an error state if needed
       }
     };
-  
+
     fetchInvoiceNumber();
-  }, [customer]); // Make sure all dependencies are listed
+  }, [customer]);
 
-  // Calculate totals and update invoice data when items change
+  // Calculate totals when items change
   useEffect(() => {
-    const subTotal = invoiceData.items.reduce((sum, item) => {
-      return sum + (parseFloat(item.amount) || 0);
-    }, 0);
-    
-    const gst = subTotal * 0.18;
-    const total = subTotal + gst;
-
     setInvoiceData(prev => ({
       ...prev,
-      totals: {
-        subTotal: parseFloat(subTotal.toFixed(2)),
-        gst: parseFloat(gst.toFixed(2)),
-        total: parseFloat(total.toFixed(2))
-      }
+      totals: calculateTotals(prev.items)
     }));
-  }, [invoiceData.items]);
+  }, [invoiceData.items, calculateTotals]);
 
-  // Fetch items from API
+  // Debounced search for items
   useEffect(() => {
     const fetchItems = async () => {
       if (searchQuery.trim().length < 2) {
@@ -145,12 +109,8 @@ const Invoice = () => {
 
       setLoading(true);
       try {
-        const response = await axios.post('http://localhost:5000/api/items/search', { searchQuery });
-        if (response.data.success) {
-          setItemsDatabase(response.data.data);
-        } else {
-          setItemsDatabase([]);
-        }
+        const { data } = await axios.post(`${API_BASE_URL}/items/search`, { searchQuery });
+        setItemsDatabase(data.success ? data.data : []);
       } catch (error) {
         console.error('Search error:', error);
         setItemsDatabase([]);
@@ -159,67 +119,52 @@ const Invoice = () => {
       }
     };
 
-    const delayDebounce = setTimeout(() => {
-      fetchItems();
-    }, 300);
-
+    const delayDebounce = setTimeout(fetchItems, 300);
     return () => clearTimeout(delayDebounce);
   }, [searchQuery]);
 
   const handleNewItemFormSubmit = async (data) => {
-    const newItem = {
-      itemName: data.name,
-      amount: data.amount,
-    };
-
     try {
-      const response = await axios.post('http://localhost:5000/api/items/create', newItem);
-      if (response.status === 201) {
-        const createdItem = response.data.data;
+      const { data: response } = await axios.post(`${API_BASE_URL}/items/create`, {
+        itemName: data.name,
+        amount: data.amount,
+      });
+
+      setItemsDatabase(prev => [
+        ...prev,
+        {
+          id: response.data._id || Math.max(...prev.map(item => item.id), 0) + 1,
+          itemName: response.data.itemName,
+          amount: response.data.amount,
+        }
+      ]);
+
+      setInvoiceData(prev => {
+        const updatedItems = [...prev.items];
+        const currentIndex = updatedItems.length - 1;
         
-        setItemsDatabase(prevItems => [
-          ...prevItems,
-          {
-            id: createdItem._id || Math.max(...prevItems.map(item => item.id), 0) + 1,
-            itemName: createdItem.itemName,
-            amount: createdItem.amount,
-          }
-        ]);
+        updatedItems[currentIndex] = {
+          ...updatedItems[currentIndex],
+          description: response.data.itemName,
+          rate: response.data.amount.toString(),
+          amount: (parseFloat(response.data.amount) * parseFloat(updatedItems[currentIndex].qty || 1)).toFixed(2)
+        };
+        
+        return { ...prev, items: updatedItems };
+      });
 
-        setInvoiceData(prev => {
-          const updatedItems = [...prev.items];
-          const currentIndex = updatedItems.length - 1;
-          updatedItems[currentIndex] = {
-            ...updatedItems[currentIndex],
-            description: createdItem.itemName,
-            rate: createdItem.amount.toString(),
-            qty: updatedItems[currentIndex].qty || '1',
-            amount: (parseFloat(createdItem.amount) * parseFloat(updatedItems[currentIndex].qty || 1)).toFixed(2)
-          };
-          
-          return {
-            ...prev,
-            items: updatedItems
-          };
-        });
-
-        setModelIsOpen(false);
-      }
+      setModelIsOpen(false);
     } catch (error) {
       console.error('Error creating item:', error);
     }
   };
 
   const handleItemChange = (index, updatedItem) => {
-    setInvoiceData(prev => {
-      const newItems = [...prev.items];
-      newItems[index] = updatedItem;
-      return {
-        ...prev,
-        items: newItems
-      };
-    });
-  };  
+    setInvoiceData(prev => ({
+      ...prev,
+      items: prev.items.map((item, i) => i === index ? updatedItem : item)
+    }));
+  };
 
   const handleAddLine = () => {
     setInvoiceData(prev => ({
@@ -242,6 +187,19 @@ const Invoice = () => {
     setModelIsOpen(true);
   };
 
+  const handleGenerateInvoice = async () => {
+    try {
+      const { status } = await axios.post(`${API_BASE_URL}/invoices/saveInvoice`, invoiceData);
+      if (status === 201) window.print();
+    } catch (error) {
+      if (error.response?.status === 409) {
+        toast.error('Invoice already exists!');
+      } else {
+        toast.error('Error saving invoice. Please try again.');
+      }
+    }
+  };
+
   if (!customer) {
     return (
       <div className='flex justify-center items-center h-screen'>
@@ -259,7 +217,6 @@ const Invoice = () => {
       </div>
     );
   }
-
 
   return (
     <div>
@@ -285,41 +242,24 @@ const Invoice = () => {
             <h1>{invoiceData.client.address}</h1>
             <h1>{invoiceData.client.phone}</h1>
           </div>
-          <div >
-              <div className='flex items-center mb-2'>
-                <h1 className='font-bold mr-2'>Invoice Date:</h1>
-                <TextField
-                  type="date"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      color: 'white',
-                    },
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'white',
-                    },
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'white',
-                      },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'white',
-                      },
-                    },
-                    '& input[type="date"]::-webkit-calendar-picker-indicator': {
-                      filter: 'invert(1)',
-                      cursor: 'pointer',
-                      opacity: 1,
-                      '&:hover': {
-                        opacity: 0.8
-                      }
-                    }
-                  }}
-                />
-              </div>
+          <div>
             <div className='flex items-center mb-2'>
-              <h1 className='font-bold mr-2'>Invoice Number: {invoiceNumber}</h1>
+              <h1 className='font-bold mr-2'>Invoice Date:</h1>
+              <TextField
+                type="date"
+                value={invoiceData.invoiceInfo.date}
+                onChange={(e) => setInvoiceData(prev => ({
+                  ...prev,
+                  invoiceInfo: {
+                    ...prev.invoiceInfo,
+                    date: e.target.value
+                  }
+                }))}
+                sx={datePickerStyles}
+              />
+            </div>
+            <div className='flex items-center mb-2'>
+              <h1 className='font-bold mr-2'>Invoice Number: {invoiceData.invoiceInfo.number}</h1>
             </div>
           </div>
         </div>
@@ -365,35 +305,69 @@ const Invoice = () => {
             <Button 
               variant="contained" 
               color="primary"
-              onClick={async () => {
-                await axios.post('http://localhost:5000/api/invoices/saveInvoice', invoiceData).then(response => {
-                  if (response.status === 201) {
-                    window.print();
-                  }
-                }).catch(error => {
-                  if (error.response.status === 409) {
-                    return toast.error('Invoice already exists!');
-                  }
-                  toast.error('Error saving invoice. Please try again.');
-                });
-              }}
+              onClick={handleGenerateInvoice}
             >
               Generate Invoice
             </Button>
           </div>
         </div>
+        
         <FormDialog
           open={isModelOpen}
           onClose={() => setModelIsOpen(false)}
           title="Create new item"
           description="Please enter the details"
-          fields={formFields}
+          fields={[
+            {
+              name: 'name',
+              label: 'Item Name',
+              type: 'text',
+              required: true,
+              defaultValue: modalName.charAt(0).toUpperCase() + modalName.slice(1)
+            },
+            {
+              name: 'amount',
+              label: 'Rate',
+              type: 'number',
+              required: true,
+              inputProps: { 
+                maxLength: 10,
+                step: "0.01",
+                min: "0"
+              }
+            }
+          ]}
           onSubmit={handleNewItemFormSubmit}
           submitText="Save"
         />
       </div>
     </div>
   );
+};
+
+const datePickerStyles = {
+  '& .MuiInputBase-input': {
+    color: 'white',
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'white',
+  },
+  '& .MuiOutlinedInput-root': {
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'white',
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'white',
+    },
+  },
+  '& input[type="date"]::-webkit-calendar-picker-indicator': {
+    filter: 'invert(1)',
+    cursor: 'pointer',
+    opacity: 1,
+    '&:hover': {
+      opacity: 0.8
+    }
+  }
 };
 
 export default Invoice;
