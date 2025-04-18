@@ -21,6 +21,7 @@ const InvoiceSchema = new mongoose.Schema({
     gst: { type: Number, required: true, min: 0 },
     total: { type: Number, required: true, min: 0 }
   },
+  author: { type: String, required: true},
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

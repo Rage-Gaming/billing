@@ -8,6 +8,7 @@ const Welcome = () => {
     useEffect(() => {
       const queryParams = new URLSearchParams(window.location.search);
       setUser(queryParams.get("username"))
+      localStorage.setItem("username", queryParams.get("username"));
     }
     , []);
   return (

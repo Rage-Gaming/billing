@@ -67,6 +67,7 @@ exports.saveInvoice = async (req, res) => {
         rate: item.rate,
         amount: item.amount
       })),
+      author: req.author,
       totals: invoiceData.totals
     });
 

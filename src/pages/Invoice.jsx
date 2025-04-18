@@ -34,7 +34,8 @@ const initialInvoiceData = {
     subTotal: 0,
     gst: 0,
     total: 0
-  }
+  },
+  author: localStorage.getItem('username') || ''
 };
 
 const Invoice = () => {
@@ -201,6 +202,19 @@ const Invoice = () => {
         toast.error('Error saving invoice. Please try again.');
       }
     }
+  };
+
+  if (!initialInvoiceData.author) {
+    return (
+      <div className='flex justify-center items-center h-screen'>
+        <div className='border-2 border-white rounded-md p-5 text-white'>
+          <h1 className='text-3xl font-bold text-[#ce0303]'>Please login to continue</h1>
+          <Button variant="contained" onClick={() => window.location.href = '/login'}>
+            Login
+          </Button>
+        </div>
+      </div>
+    )
   };
 
   if (!customer) {
