@@ -25,6 +25,7 @@ async function updateInvoiceCounter() {
 exports.saveInvoice = async (req, res) => {
   try {
     const invoiceData = req.body;
+    console.log('Received invoice date:', invoiceData.invoiceInfo.date);
 
     // Check if invoice number exists in body
     if (!invoiceData.invoiceInfo?.number) {
@@ -58,7 +59,7 @@ exports.saveInvoice = async (req, res) => {
         phone: invoiceData.client.phone
       },
       invoiceInfo: {
-        date: invoiceData.invoiceInfo.date || new Date(),
+        date: invoiceData.invoiceInfo.date,
         number: invoiceData.invoiceInfo.number
       },
       items: invoiceData.items.map(item => ({
@@ -67,7 +68,7 @@ exports.saveInvoice = async (req, res) => {
         rate: item.rate,
         amount: item.amount
       })),
-      author: req.author,
+      author: invoiceData.author,
       totals: invoiceData.totals
     });
 

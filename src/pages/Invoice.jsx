@@ -19,7 +19,7 @@ const initialInvoiceData = {
     phone: ''
   },
   invoiceInfo: {
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-GB').split('/').reverse().join('-'),
     number: ''
   },
   items: [
@@ -39,7 +39,7 @@ const initialInvoiceData = {
 };
 
 const Invoice = () => {
-  const { customer } = useCustomer();
+  const { customer, setCustomer } = useCustomer();
   const [isModelOpen, setModelIsOpen] = useState(false);
   const [modalName, setModalName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -189,6 +189,14 @@ const Invoice = () => {
   };
 
   const handleGenerateInvoice = async () => {
+    if (!invoiceData.invoiceInfo.number) {
+      toast.error('Please enter a valid invoice number!');
+      return;
+    }
+    if (invoiceData.items.some(item => !item.description || !item.rate || !item.qty)) {
+      toast.error('Please fill in all item details!');
+      return;
+    }
     try {
       const { status } = await axios.post(`${API_BASE_URL}/invoices/saveInvoice`, invoiceData);
       if (status === 201) {
@@ -258,6 +266,7 @@ const Invoice = () => {
             <h1>{invoiceData.client.name}</h1>
             <h1>{invoiceData.client.address}</h1>
             <h1>{invoiceData.client.phone}</h1>
+            <h1 onClick={() => setCustomer(null)} className='underline cursor-pointer text-blue-500'>Change user</h1>
           </div>
           <div>
             <div className='flex items-center mb-2'>

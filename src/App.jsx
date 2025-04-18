@@ -1,13 +1,14 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import LoginPage from './pages/loginPage.jsx';
-import Error404 from './components/Error404.jsx';
-import Welcome from './pages/Welcome.jsx';
-import Invoice from './pages/Invoice.jsx';
-import Customer from './pages/Customer.jsx';
 import { CustomerProvider } from './context/CustomerContext';
+import InvoiceHistory from './pages/InvoiceHistory.jsx';
+import Error404 from './components/Error404.jsx';
+import LoginPage from './pages/loginPage.jsx';
+import Customer from './pages/Customer.jsx';
 import Admin from './pages/admin/Admin.jsx';
-import { Toaster } from 'sonner'
+import Invoice from './pages/Invoice.jsx';
+import Welcome from './pages/Welcome.jsx';
+import { Toaster } from 'sonner';
+import React from 'react';
 
 // Create a ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
@@ -28,16 +29,22 @@ const App = () => {
                 <Welcome />
               </ProtectedRoute>
             } />
-            
+
             <Route path="/customer" element={
               <ProtectedRoute>
                 <Customer />
               </ProtectedRoute>
             } />
-            
+
             <Route path="/invoice" element={
               <ProtectedRoute>
                 <Invoice />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/history" element={
+              <ProtectedRoute>
+                <InvoiceHistory />
               </ProtectedRoute>
             } />
 
@@ -46,7 +53,7 @@ const App = () => {
           </Routes>
         </CustomerProvider>
       </Router>
-      <Toaster position="bottom-center"/>
+      <Toaster position="bottom-center" />
     </section>
   );
 }
