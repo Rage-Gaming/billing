@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { CustomerProvider } from './context/CustomerContext';
+import { InvoiceHistoryProvider } from './context/InvoiceHistoryContext';
 import InvoiceHistory from './pages/InvoiceHistory.jsx';
+import ItemsInvoiceHistory from './pages/ItemsInvoiceHistory.jsx';
 import Error404 from './components/Error404.jsx';
 import LoginPage from './pages/loginPage.jsx';
 import Customer from './pages/Customer.jsx';
@@ -10,7 +12,6 @@ import Welcome from './pages/Welcome.jsx';
 import { Toaster } from 'sonner';
 import React from 'react';
 
-// Create a ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = !!localStorage.getItem('authToken');
   return isAuthenticated ? children : <Navigate to="/login" replace />;
@@ -21,36 +22,44 @@ const App = () => {
     <section>
       <Router>
         <CustomerProvider>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/welcome" element={
-              <ProtectedRoute>
-                <Welcome />
-              </ProtectedRoute>
-            } />
+          <InvoiceHistoryProvider>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/welcome" element={
+                <ProtectedRoute>
+                  <Welcome />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/customer" element={
-              <ProtectedRoute>
-                <Customer />
-              </ProtectedRoute>
-            } />
+              <Route path="/customer" element={
+                <ProtectedRoute>
+                  <Customer />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/invoice" element={
-              <ProtectedRoute>
-                <Invoice />
-              </ProtectedRoute>
-            } />
+              <Route path="/invoice" element={
+                <ProtectedRoute>
+                  <Invoice />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/history" element={
-              <ProtectedRoute>
-                <InvoiceHistory />
-              </ProtectedRoute>
-            } />
+              <Route path="/invoice-history" element={
+                <ProtectedRoute>
+                  <ItemsInvoiceHistory />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<Error404 />} />
-          </Routes>
+              <Route path="/history" element={
+                <ProtectedRoute>
+                  <InvoiceHistory />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="*" element={<Error404 />} />
+            </Routes>
+          </InvoiceHistoryProvider>
         </CustomerProvider>
       </Router>
       <Toaster position="bottom-center" />

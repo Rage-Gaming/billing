@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TextField, IconButton, CircularProgress } from '@mui/material';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import CloseIcon from '@mui/icons-material/Close';
 
 const LineItemComponent = ({
   index,
@@ -9,12 +8,14 @@ const LineItemComponent = ({
   itemsList = [],
   onItemChange,
   onInputChange,
-  onAddLine,
   onRemoveLine,
   onCreateNewItem,
   isLast,
   autoFocus = false,
-  loading
+  loading,
+  readOnly = false,
+  canAddNewLine, // New prop to control add button visibility
+  onRequestAddLine // New prop for add line requests
 }) => {
   const [localItem, setLocalItem] = useState(item);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -24,42 +25,47 @@ const LineItemComponent = ({
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Add click outside handler
+  // Validate if current item is complete
+  const isItemValid = () => {
+    return (
+      localItem.description?.trim() && 
+      !isNaN(parseFloat(localItem.rate)) && 
+      !isNaN(parseInt(localItem.qty))
+    );
+  };
+
+  // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        // Check if the click was not on the input either
-        if (inputRef.current && !inputRef.current.contains(event.target)) {
-          setShowDropdown(false);
-        }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+          inputRef.current && !inputRef.current.contains(event.target)) {
+        setShowDropdown(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
     setLocalItem(item);
   }, [item]);
 
+  // Calculate amount when rate or qty changes
   useEffect(() => {
     if (localItem.rate && localItem.qty) {
       const amount = (parseFloat(localItem.rate) * parseFloat(localItem.qty)).toFixed(2);
       if (amount !== localItem.amount) {
-        const updatedItem = {
-          ...localItem,
-          amount
-        };
+        const updatedItem = { ...localItem, amount };
         setLocalItem(updatedItem);
         onItemChange(index, updatedItem);
       }
     }
-  }, [localItem.rate, localItem.qty]);
+  }, [localItem.rate, localItem.qty, index, onItemChange]);
 
   const handleInputChange = (e) => {
+    if (readOnly) return;
+    
     const { name, value } = e.target;
     const updatedItem = { ...localItem, [name]: value };
     
@@ -68,14 +74,9 @@ const LineItemComponent = ({
     
     if (name === 'description') {
       setSearchQuery(value);
-      if (value.length > 1) {
-        setShowDropdown(true);
-        setLocalLoading(true);
-        onInputChange(e);
-      } else {
-        setShowDropdown(value.length > 0);
-        setFilteredItems([]);
-      }
+      setShowDropdown(value.length > 0);
+      setLocalLoading(value.length > 1);
+      if (value.length > 1) onInputChange(e);
     }
   };
 
@@ -102,6 +103,12 @@ const LineItemComponent = ({
   const handleCreateNewItem = () => {
     onCreateNewItem(localItem.description);
     setShowDropdown(false);
+  };
+
+  const handleAddLineRequest = () => {
+    if (isItemValid()) {
+      onRequestAddLine();
+    }
   };
 
   const renderDropdownContent = () => {
@@ -165,79 +172,109 @@ const LineItemComponent = ({
   };
 
   return (
-    <div className="line-item flex items-center mb-4" style={{ position: 'relative' }}>
-      <div className="flex items-center w-full">
+    <div className="line-item flex items-center mb-4" style={{ position: 'relative', height: '56px' }}>
+      <div className="flex items-center w-full h-full">
+        {/* Index */}
         <div className="w-10 text-white flex justify-center">
           {index + 1}
         </div>
 
-        <div className="w-[40%] mx-2 relative">
-          <TextField
-            inputRef={inputRef}
-            fullWidth
-            size="small"
-            name="description"
-            value={localItem.description || ''}
-            onChange={handleInputChange}
-            onFocus={() => {
-              if (localItem.description.length > 0) {
-                setShowDropdown(true);
-              }
-            }}
-            autoFocus={autoFocus}
-            autoComplete='off'
-            placeholder="Item description"
-            sx={{
-              '& .MuiInputBase-input': { color: 'white' },
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-            }}
-          />
-          {showDropdown && (
-            <ul 
-              ref={dropdownRef}
-              className="absolute z-10 w-full mt-1 bg-gray-700 border border-white rounded-md shadow-lg max-h-60 overflow-y-auto"
-            >
-              {renderDropdownContent()}
-            </ul>
+        {/* Description with dropdown */}
+        <div className="w-[50%] mx-2 relative h-full">
+          {readOnly ? (
+            <div className="h-full flex items-center px-2 text-white">
+              {localItem.description}
+            </div>
+          ) : (
+            <>
+              <TextField
+                inputRef={inputRef}
+                fullWidth
+                size="small"
+                name="description"
+                value={localItem.description || ''}
+                onChange={handleInputChange}
+                onFocus={() => setShowDropdown(localItem.description.length > 0)}
+                autoFocus={autoFocus}
+                autoComplete="off"
+                placeholder="Item description"
+                sx={{
+                  '& .MuiInputBase-input': { color: 'white', height: '40px' },
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
+                  height: '100%'
+                }}
+                error={isLast && !localItem.description?.trim()}
+                helperText={isLast && !localItem.description?.trim() ? "Description required" : ""}
+              />
+              {showDropdown && (
+                <ul 
+                  ref={dropdownRef}
+                  className="absolute z-10 w-full mt-1 bg-gray-700 border border-white rounded-md shadow-lg max-h-60 overflow-y-auto"
+                  style={{ top: '100%' }}
+                >
+                  {renderDropdownContent()}
+                </ul>
+              )}
+            </>
           )}
         </div>
 
-        {/* Rest of the component remains the same */}
-        <div className="w-[20%] mx-2">
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            name="qty"
-            value={localItem.qty || ''}
-            onChange={handleInputChange}
-            placeholder="Qty"
-            inputProps={{ min: "0", step: "0.01" }}
-            sx={{
-              '& .MuiInputBase-input': { color: 'white' },
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-            }}
-          />
+        {/* Quantity */}
+        <div className="w-[15%] mx-2 h-full">
+          {readOnly ? (
+            <div className="h-full flex items-center px-2 text-white">
+              {localItem.qty}
+            </div>
+          ) : (
+            <TextField
+              fullWidth
+              size="small"
+              type="number"
+              name="qty"
+              value={localItem.qty || ''}
+              onChange={handleInputChange}
+              placeholder="Qty"
+              inputProps={{ min: "1", step: "1" }}
+              sx={{
+                '& .MuiInputBase-input': { color: 'white', height: '40px' },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
+                height: '100%'
+              }}
+              error={isLast && (!localItem.qty || isNaN(parseInt(localItem.qty)))}
+              helperText={isLast && (!localItem.qty || isNaN(parseInt(localItem.qty))) ? "Valid quantity required" : ""}
+            />
+          )}
         </div>
 
-        <div className="w-[20%] mx-2">
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            name="rate"
-            value={localItem.rate || ''}
-            onChange={handleInputChange}
-            placeholder="Rate"
-            inputProps={{ min: "0", step: "0.01" }}
-            sx={{
-              '& .MuiInputBase-input': { color: 'white' },
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-            }}
-          />
+        {/* Rate */}
+        <div className="w-[15%] mx-2 h-full">
+          {readOnly ? (
+            <div className="h-full flex items-center px-2 text-white">
+              {localItem.rate}
+            </div>
+          ) : (
+            <TextField
+              fullWidth
+              size="small"
+              type="number"
+              name="rate"
+              value={localItem.rate || ''}
+              onChange={handleInputChange}
+              placeholder="Rate"
+              inputProps={{ min: "0", step: "0.01" }}
+              sx={{
+                '& .MuiInputBase-input': { color: 'white', height: '40px' },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
+                height: '100%'
+              }}
+              error={isLast && (!localItem.rate || isNaN(parseFloat(localItem.rate)))}
+              helperText={isLast && (!localItem.rate || isNaN(parseFloat(localItem.rate))) ? "Valid rate required" : ""}
+            />
+          )}
         </div>
 
-        <div className="w-[20%] mx-2 flex items-center">
+        {/* Amount */}
+        <div className="w-[20%] mx-2 h-full">
           <TextField
             fullWidth
             size="small"
@@ -249,26 +286,28 @@ const LineItemComponent = ({
                 color: 'white',
                 textAlign: 'right',
                 paddingRight: '8px',
+                height: '40px'
               },
               '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-              width: 'calc(100% - 72px)',
-              marginRight: '8px',
+              height: '100%'
             }}
           />
+        </div>
 
-          <div className="flex" style={{ width: '64px' }}>
-            {isLast && (
-              <IconButton onClick={onAddLine} size="small" sx={{ color: 'white' }}>
-                <AddCircleOutlineIcon fontSize="small" />
-              </IconButton>
-            )}
+        {/* Action buttons */}
+        {!readOnly && (
+          <div className="w-[40px] flex justify-center">
             {index > 0 && (
-              <IconButton onClick={() => onRemoveLine(index)} size="small" sx={{ color: 'white' }}>
-                <RemoveCircleOutlineIcon fontSize="small" />
+              <IconButton 
+                onClick={() => onRemoveLine(index)} 
+                size="small" 
+                sx={{ color: 'white' }}
+              >
+                <CloseIcon fontSize="small" />
               </IconButton>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

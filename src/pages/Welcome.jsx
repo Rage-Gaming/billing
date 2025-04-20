@@ -1,7 +1,6 @@
 import React from 'react'
 import NavBar from '../components/NavBar'
-import { useState } from "react";
-import { useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 const Welcome = () => {
     const [user, setUser] = useState("");

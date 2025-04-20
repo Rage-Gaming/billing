@@ -1,14 +1,16 @@
-import * as React from 'react';
-import logo from '../assets/logo.png';
+import LineItemComponent from '../components/InvoiceLineItems';
+import { useCustomer } from '../context/CustomerContext';
+import { useState, useEffect, useCallback } from 'react';
+import FormDialog from '../components/Modal';
 import Button from '@mui/material/Button';
 import NavBar from '../components/NavBar';
-import { useCustomer } from '../context/CustomerContext';
 import { TextField } from '@mui/material';
-import { useState, useEffect, useCallback } from 'react';
-import LineItemComponent from '../components/InvoiceLineItems';
-import FormDialog from '../components/Modal';
-import axios from 'axios';
+import logo from '../assets/logo.png';
 import { toast } from 'sonner';
+import { useInvoiceHistory } from '../context/InvoiceHistoryContext';
+import * as React from 'react';
+import axios from 'axios';
+import { useParams } from 'react-router-dom';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -27,7 +29,7 @@ const initialInvoiceData = {
       description: '',
       qty: '1',
       rate: '',
-      amount: '0.00'
+      amount: '0.00',
     }
   ],
   totals: {
@@ -39,6 +41,7 @@ const initialInvoiceData = {
 };
 
 const Invoice = () => {
+  const { id } = useParams();
   const { customer, setCustomer } = useCustomer();
   const [isModelOpen, setModelIsOpen] = useState(false);
   const [modalName, setModalName] = useState('');
@@ -46,6 +49,10 @@ const Invoice = () => {
   const [itemsDatabase, setItemsDatabase] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [invoiceData, setInvoiceData] = useState(initialInvoiceData);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const { invoiceHistory } = useInvoiceHistory();
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  const isHistory = invoiceHistory ? true : false;
 
   // Memoized calculation of totals
   const calculateTotals = useCallback((items) => {
@@ -57,10 +64,44 @@ const Invoice = () => {
       total: parseFloat((subTotal + gst).toFixed(2))
     };
   }, []);
+  console.log(invoiceHistory)
 
-  // Update client info and fetch invoice number when customer changes
+  // Load invoice data if it's a historical invoice
   useEffect(() => {
-    if (!customer) return;
+    if (isHistory) {
+      setInvoiceData({
+        client: {
+          name: invoiceHistory[0].client.name,
+          address: invoiceHistory[0].client.address,
+          phone: invoiceHistory[0].client.phone
+        },
+        invoiceInfo: {
+          date: new Date(invoiceHistory[0].invoiceInfo.date).toISOString().split('T')[0],
+          number: invoiceHistory[0].invoiceInfo.number
+        },
+        items: invoiceHistory[0].items.map(item => ({
+          description: item.description,
+          qty: item.quantity.toString(),
+          rate: item.rate.toString(),
+          amount: item.amount.toString(),
+        })),
+        totals: {
+          subTotal: invoiceHistory[0].totals.subTotal,
+          gst: invoiceHistory[0].totals.gst,
+          total: invoiceHistory[0].totals.total
+        },
+        author: invoiceHistory[0].author || localStorage.getItem('username') || ''
+      });
+      
+      if (isAdmin) {
+        setIsEditMode(false);
+      }
+    }
+  }, [isHistory, invoiceHistory, isAdmin]);
+
+  // Update client info and fetch invoice number when customer changes (for new invoices)
+  useEffect(() => {
+    if (!customer || isHistory) return;
 
     const fetchInvoiceNumber = async () => {
       try {
@@ -90,15 +131,17 @@ const Invoice = () => {
     };
 
     fetchInvoiceNumber();
-  }, [customer]);
+  }, [customer, isHistory]);
 
-  // Calculate totals when items change
+  // Calculate totals when items change (only in edit mode or new invoice)
   useEffect(() => {
-    setInvoiceData(prev => ({
-      ...prev,
-      totals: calculateTotals(prev.items)
-    }));
-  }, [invoiceData.items, calculateTotals]);
+    if (isEditMode || !isHistory) {
+      setInvoiceData(prev => ({
+        ...prev,
+        totals: calculateTotals(prev.items)
+      }));
+    }
+  }, [invoiceData.items, calculateTotals, isEditMode, isHistory]);
 
   // Debounced search for items
   useEffect(() => {
@@ -148,7 +191,7 @@ const Invoice = () => {
           ...updatedItems[currentIndex],
           description: response.data.itemName,
           rate: response.data.amount.toString(),
-          amount: (parseFloat(response.data.amount) * parseFloat(updatedItems[currentIndex].qty || 1)).toFixed(2)
+          amount: (parseFloat(response.data.amount) * parseFloat(updatedItems[currentIndex].qty || 1)).toFixed(2),
         };
         
         return { ...prev, items: updatedItems };
@@ -161,6 +204,8 @@ const Invoice = () => {
   };
 
   const handleItemChange = (index, updatedItem) => {
+    if (!isEditMode && isHistory) return;
+    
     setInvoiceData(prev => ({
       ...prev,
       items: prev.items.map((item, i) => i === index ? updatedItem : item)
@@ -168,13 +213,22 @@ const Invoice = () => {
   };
 
   const handleAddLine = () => {
+    if (!isEditMode && isHistory) return;
+    if (invoiceData.items[invoiceData.items.length - 1].description === '') return toast.error('Please fill in the last item before adding a new one!');
+    
     setInvoiceData(prev => ({
       ...prev,
-      items: [...prev.items, { description: '', qty: '1', rate: '', amount: '0.00' }]
+      items: [...prev.items, { 
+        description: '', 
+        qty: '1', 
+        rate: '', 
+        amount: '0.00',
+      }]
     }));
   };
 
   const handleRemoveLine = (index) => {
+    if (!isEditMode && isHistory) return;
     if (invoiceData.items.length > 1) {
       setInvoiceData(prev => ({
         ...prev,
@@ -184,6 +238,7 @@ const Invoice = () => {
   };
 
   const handleCreateNewItem = (description) => {
+    if (!isEditMode && isHistory) return;
     setModalName(description);
     setModelIsOpen(true);
   };
@@ -198,16 +253,40 @@ const Invoice = () => {
       return;
     }
     try {
-      const { status } = await axios.post(`${API_BASE_URL}/invoices/saveInvoice`, invoiceData);
-      if (status === 201) {
-        window.print();
-        window.location.href = '/customer?invoiceStatus=success';
+      if (isHistory) {
+        // Update existing invoice
+        const { status } = await axios.put(`${API_BASE_URL}/invoices/${invoiceHistory[0]._id}`, {
+          ...invoiceData,
+          clientName: invoiceData.client.name,
+          clientAddress: invoiceData.client.address,
+          clientPhone: invoiceData.client.phone,
+          date: invoiceData.invoiceInfo.date,
+          invoiceNumber: invoiceData.invoiceInfo.number
+        });
+        if (status === 200) {
+          toast.success('Invoice updated successfully!');
+          setIsEditMode(false);
+        }
+      } else {
+        // Create new invoice
+        const { status } = await axios.post(`${API_BASE_URL}/invoices/saveInvoice`, {
+          ...invoiceData,
+          clientName: invoiceData.client.name,
+          clientAddress: invoiceData.client.address,
+          clientPhone: invoiceData.client.phone,
+          date: invoiceData.invoiceInfo.date,
+          invoiceNumber: invoiceData.invoiceInfo.number
+        });
+        if (status === 201) {
+          window.print();
+          window.location.href = '/customer?invoiceStatus=success';
+        }
       }
     } catch (error) {
       if (error.response?.status === 409) {
         toast.error('Invoice already exists!');
       } else {
-        toast.error('Error saving invoice. Please try again.');
+        toast.error(error.response?.data?.message || 'Error saving invoice. Please try again.');
       }
     }
   };
@@ -225,7 +304,7 @@ const Invoice = () => {
     )
   };
 
-  if (!customer) {
+  if (!customer && !isHistory) {
     return (
       <div className='flex justify-center items-center h-screen'>
         <div className='border-2 border-white rounded-md p-5 text-white'>
@@ -251,7 +330,16 @@ const Invoice = () => {
       <div className='mx-5 p-5 border-2 border-white rounded-md'>
         <div className='flex justify-between items-center mb-4'>
           <img src={logo} alt="logo" width={60} height={60} />
-          <h1 className='text-3xl font-bold text-center text-white'>Invoice</h1>
+          <h1 className='text-3xl font-bold text-center text-white'>Invoice {isHistory && `#${invoiceData.invoiceInfo.number}`}</h1>
+          {isHistory && isAdmin && (
+            <Button 
+              variant="contained" 
+              onClick={() => setIsEditMode(!isEditMode)}
+              color={isEditMode ? 'secondary' : 'primary'}
+            >
+              {isEditMode ? 'Cancel Edit' : 'Edit Invoice'}
+            </Button>
+          )}
         </div>
 
         <div className='text-white mb-20'>
@@ -266,23 +354,32 @@ const Invoice = () => {
             <h1>{invoiceData.client.name}</h1>
             <h1>{invoiceData.client.address}</h1>
             <h1>{invoiceData.client.phone}</h1>
-            <h1 onClick={() => setCustomer(null)} className='underline cursor-pointer text-blue-500'>Change user</h1>
+            {!isHistory && (
+              <h1 onClick={() => setCustomer(null)} className='underline cursor-pointer text-blue-500'>
+                Change user
+              </h1>
+            )}
           </div>
           <div>
             <div className='flex items-center mb-2'>
               <h1 className='font-bold mr-2'>Invoice Date:</h1>
-              <TextField
-                type="date"
-                value={invoiceData.invoiceInfo.date}
-                onChange={(e) => setInvoiceData(prev => ({
-                  ...prev,
-                  invoiceInfo: {
-                    ...prev.invoiceInfo,
-                    date: e.target.value
-                  }
-                }))}
-                sx={datePickerStyles}
-              />
+              {isEditMode || !isHistory ? (
+                <TextField
+                  type="date"
+                  value={invoiceData.invoiceInfo.date}
+                  onChange={(e) => setInvoiceData(prev => ({
+                    ...prev,
+                    invoiceInfo: {
+                      ...prev.invoiceInfo,
+                      date: e.target.value
+                    }
+                  }))}
+                  sx={datePickerStyles}
+                  disabled={!isEditMode && isHistory}
+                />
+              ) : (
+                <span>{new Date(invoiceData.invoiceInfo.date).toLocaleDateString()}</span>
+              )}
             </div>
             <div className='flex items-center mb-2'>
               <h1 className='font-bold mr-2'>Invoice Number: {invoiceData.invoiceInfo.number}</h1>
@@ -293,12 +390,12 @@ const Invoice = () => {
         <div className='border-2 border-white rounded-md p-5 mt-4'>
           <div className='flex bg-gray-600 p-5 text-white font-bold rounded-md mb-4'>
             <div className='w-10 text-center'>#</div>
-            <div className='w-[40%] mx-2'>Item description</div>
-            <div className='w-[20%] mx-2'>Qty</div>
-            <div className='w-[20%] mx-2'>Rate</div>
-            <div className='w-[20%] mx-2 flex justify-between'>
+            <div className='w-[35%] mx-2'>Item description</div>
+            <div className='w-[15%] mx-2'>Qty</div>
+            <div className='w-[15%] mx-2'>Rate</div>
+            <div className='w-[15%] mx-2 flex justify-between'>
               <span className='w-[calc(100%-72px)]'>Amount</span>
-              <span className='w-[64px] text-center'>Actions</span>
+              {(isEditMode || !isHistory) && <span className='w-[64px] text-center'>Actions</span>}
             </div>
           </div>
           
@@ -316,25 +413,49 @@ const Invoice = () => {
               isLast={index === invoiceData.items.length - 1}
               autoFocus={index === invoiceData.items.length - 1 && invoiceData.items.length > 1}
               loading={loading}
+              readOnly={!isEditMode && isHistory}
             />
           ))}
 
+          {(isEditMode || !isHistory) && (
+            <div className='mt-4'>
+              <Button 
+                variant="outlined" 
+                color="primary"
+                onClick={handleAddLine}
+                disabled={!isEditMode && isHistory}
+              >
+                Add Line Item
+              </Button>
+            </div>
+          )}
+
           <div className='flex justify-end items-center mt-8 text-white'>
             <div className='flex flex-col items-end'>
-              <div className='text-xl font-bold mb-4'>Sub Total: ${invoiceData.totals.subTotal}</div>
-              <div className='text-xl font-bold mb-4'>Tax (18%): ${invoiceData.totals.gst}</div>
-              <div className='text-xl font-bold'>Total: ${invoiceData.totals.total}</div>
+              <div className='text-xl font-bold mb-4'>Sub Total: ${invoiceData.totals.subTotal.toFixed(2)}</div>
+              <div className='text-xl font-bold mb-4'>Tax (18%): ${invoiceData.totals.gst.toFixed(2)}</div>
+              <div className='text-xl font-bold'>Total: ${invoiceData.totals.total.toFixed(2)}</div>
             </div>
           </div>
 
           <div className='mt-8 flex justify-end'>
-            <Button 
-              variant="contained" 
-              color="primary"
-              onClick={handleGenerateInvoice}
-            >
-              Generate Invoice
-            </Button>
+            {(isEditMode || !isHistory) ? (
+              <Button 
+                variant="contained" 
+                color="primary"
+                onClick={handleGenerateInvoice}
+              >
+                {isHistory ? 'Update Invoice' : 'Generate Invoice'}
+              </Button>
+            ) : (
+              <Button 
+                variant="contained" 
+                color="primary"
+                onClick={() => window.print()}
+              >
+                Print Invoice
+              </Button>
+            )}
           </div>
         </div>
         
@@ -361,7 +482,7 @@ const Invoice = () => {
                 step: "0.01",
                 min: "0"
               }
-            }
+            },
           ]}
           onSubmit={handleNewItemFormSubmit}
           submitText="Save"

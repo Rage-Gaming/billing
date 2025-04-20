@@ -118,3 +118,70 @@ exports.getCurrentInvoiceNumber = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+exports.searchInvoice = async (req, res) => {
+  try {
+    const { query } = req.body;
+    if (!query ) return res.status(400).json({ success: false, message: 'Search query is required' });
+    if (query.length < 2) return res.status(400).json({ success: false, message: 'Search query must be at least 2 characters long' });
+    const regex = new RegExp(query, 'i'); // Case-insensitive regex
+
+    const invoices = await Invoice.find({
+      $or: [
+        { 'client.name': regex },
+        { 'client.address': regex },
+        { 'client.phone': regex },
+        { 'invoiceInfo.number': regex }
+      ]
+    }).sort({ createdAt: -1 }); // Sort by creation date, most recent first
+
+    res.status(200).json({
+      success: true,
+      data: invoices
+    });
+  } catch (err) {
+    console.error('Error searching invoices:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search invoices',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    });
+  }
+}
+
+exports.getInvoice = async (req, res) => {
+  try {
+    const { invoiceId } = req.query; 
+    
+    if (!invoiceId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invoice ID is required' 
+      });
+    }
+
+    const invoices = await Invoice.find({ "invoiceInfo.number": invoiceId });
+    
+    if (invoices.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: invoices.length,  // Useful to know how many were found
+      data: invoices
+    });
+  }
+  catch (err) {
+    console.error('Error fetching invoice:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch invoice',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    });
+  }
+}

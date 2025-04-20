@@ -1,48 +1,48 @@
 import { React, useState, useEffect } from 'react'
 import NavBar from '../components/NavBar'
+import { useInvoiceHistory } from '../context/InvoiceHistoryContext';
+import { useCustomer } from '../context/CustomerContext';
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api'; // Replace with your actual API base URL
-
-const initialInvoiceData = [
-    {
-        client: {
-            name: 'Rage',
-            address: 'test',
-            phone: '123456789'
-        },
-        invoiceInfo: {
-            date: new Date().toLocaleDateString('en-GB').split('/').reverse().join('-'),
-            number: '001'
-        },
-    },
-    {
-        client: {
-            name: 'Ramu',
-            address: 'nice',
-            phone: '8547318940'
-        },
-        invoiceInfo: {
-            date: new Date().toLocaleDateString('en-GB').split('/').reverse().join('-'),
-            number: '002'
-        },
-    },
-    // Add more invoices if needed
-];
+import { useNavigate } from "react-router-dom";
 
 const InvoiceHistory = () => {
+    const navigate = useNavigate();
     const [query, setQuery] = useState('')
+    const [itemsDatabase, setItemsDatabase] = useState([]);
+    const { setInvoiceHistory } = useInvoiceHistory();
+    const { setCustomer } = useCustomer();
 
-    
 
-    const handleViewButton = (invoiceNumber) => () => {
-        // Handle the view button click here, e.g., navigate to the invoice details page
-        console.log(`View invoice number: ${invoiceNumber}`);
-        // You can use a router or any other method to navigate to the invoice details page
+
+    const handleViewButton = (invoiceNumber) => async () => {
+        const { data } = await axios.post(`http://localhost:5000/api/invoices/getInvoice?invoiceId=${invoiceNumber}`)
+        setInvoiceHistory(data.data);
+        setCustomer(null);
+        navigate('/invoice', { state: { invoice: data } });
     }
 
     useEffect(() => {
-        
+        const fetchItems = async () => {
+            if (query.trim().length < 2) {
+                setItemsDatabase([]);
+                return;
+            }
+
+            // setLoading(true);
+            try {
+                const { data } = await axios.post(`http://localhost:5000/api/invoices/search`, { query });
+                // console.log(data)
+                setItemsDatabase(data.success ? data.data : []);
+            } catch (error) {
+                console.error('Search error:', error);
+                setItemsDatabase([]);
+            } finally {
+                // setLoading(false);
+            }
+        };
+
+        const delayDebounce = setTimeout(fetchItems, 300);
+        return () => clearTimeout(delayDebounce);
     }, [query])
 
     return (
@@ -71,7 +71,13 @@ const InvoiceHistory = () => {
                         <h2 className='w-125 text-xl font-bold'>Action</h2>
 
                     </div>
-                    {initialInvoiceData
+
+
+                    {query.length < 2 ? (
+                        <div className='text-center text-lg'>Please enter at least 2 characters to search</div>
+                    ): itemsDatabase.length === 0 ? ( 
+                        <div className='text-center text-lg'>No results found</div>
+                    ) : itemsDatabase
                         .filter((invoice) =>
                             invoice.client.name.toLowerCase().includes(query.toLowerCase()) ||
                             invoice.client.address.toLowerCase().includes(query.toLowerCase()) ||
