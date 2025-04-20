@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { CustomerProvider } from './context/CustomerContext';
 import { InvoiceHistoryProvider } from './context/InvoiceHistoryContext';
 import InvoiceHistory from './pages/InvoiceHistory.jsx';
-import ItemsInvoiceHistory from './pages/ItemsInvoiceHistory.jsx';
 import Error404 from './components/Error404.jsx';
 import LoginPage from './pages/loginPage.jsx';
 import Customer from './pages/Customer.jsx';
@@ -41,12 +40,6 @@ const App = () => {
               <Route path="/invoice" element={
                 <ProtectedRoute>
                   <Invoice />
-                </ProtectedRoute>
-              } />
-
-              <Route path="/invoice-history" element={
-                <ProtectedRoute>
-                  <ItemsInvoiceHistory />
                 </ProtectedRoute>
               } />
 
