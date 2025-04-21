@@ -97,7 +97,7 @@ export default function Customer() {
   const handleContinue = () => {
     if (selectedCustomer) {
       setCustomer(selectedCustomer);
-      navigate('/invoice');
+      navigate('/invoice?new=true');
     }
   };
 

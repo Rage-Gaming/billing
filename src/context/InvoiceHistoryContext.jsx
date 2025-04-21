@@ -12,4 +12,4 @@ export const InvoiceHistoryProvider = ({ children }) => {
   );
 };
 
-export const useInvoiceHistory = () => useContext(InvoiceHistoryContext);
+export  const useInvoiceHistory = () => useContext(InvoiceHistoryContext);

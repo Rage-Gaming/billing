@@ -61,7 +61,7 @@ const Admin = () => {
           Manage Employees
         </Button>
 
-        <Button variant="contained" onClick={() => window.location.href = '/customer'}>
+        <Button variant="contained" onClick={() => window.location.href = '/history'}>
           Invoice History
         </Button>
 

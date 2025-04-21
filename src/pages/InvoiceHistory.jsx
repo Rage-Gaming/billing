@@ -18,7 +18,7 @@ const InvoiceHistory = () => {
         const { data } = await axios.post(`http://localhost:5000/api/invoices/getInvoice?invoiceId=${invoiceNumber}`)
         setInvoiceHistory(data.data);
         setCustomer(null);
-        navigate('/invoice', { state: { invoice: data } });
+        navigate('/invoice?new=false', { state: { invoice: data } });
     }
 
     useEffect(() => {

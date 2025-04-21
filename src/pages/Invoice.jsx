@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useInvoiceHistory } from '../context/InvoiceHistoryContext';
 import * as React from 'react';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -42,6 +42,7 @@ const initialInvoiceData = {
 
 const Invoice = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const { customer, setCustomer } = useCustomer();
   const [isModelOpen, setModelIsOpen] = useState(false);
   const [modalName, setModalName] = useState('');
@@ -52,7 +53,7 @@ const Invoice = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const { invoiceHistory } = useInvoiceHistory();
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  const isHistory = invoiceHistory ? true : false;
+  const isHistory = invoiceHistory && searchParams.get('new') === 'false' ? true : false;
 
   // Memoized calculation of totals
   const calculateTotals = useCallback((items) => {
