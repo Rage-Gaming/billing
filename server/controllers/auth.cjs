@@ -63,10 +63,43 @@ exports.login = async (req, res) => {
 
 exports.searchUsers = async (req, res) => {
   try {
-    const { username } = req.query;
-    const users = await User.find({ username: { $regex: username, $options: 'i' } });
-    res.status(200).json(users);
+    const { search, page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Build search query
+    const query = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+        // Add other searchable fields as needed
+      ];
+    }
+
+    // Get users with pagination and field exclusion
+    const users = await User.find(query)
+      .select('-__v -createdAt -updatedAt -password') // Exclude sensitive/uneeded fields
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count for pagination info
+    const total = await User.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / limit),
+      data: users
+    });
+
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching users' });
+    console.error('Search Users Error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Server Error',
+      message: error.message || 'Failed to search users'
+    });
   }
-}
+};

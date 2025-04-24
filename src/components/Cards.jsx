@@ -5,19 +5,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function Cards({
+  index = null,
   title = null,
   titleDescription = null,
   defaultName = null,
   defaultEmail = null,
   submit = () => { },
+  onDelete = () => { },
 }) {
   const [name, setName] = useState(defaultName);
   const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState('');
 
   const handleSubmit = (e) => {
+    console.log('Form submitted with:', { name, email, password }); // Debugging line
     e.preventDefault();
     submit({ name, email, password });
+  }
+
+  const handleDeleteButton = (e) => {
+    e.preventDefault(); // Prevent default form submissionine
+    onDelete({ index, name, email });
   }
 
   return (
@@ -27,13 +35,13 @@ export default function Cards({
         <CardDescription>{titleDescription}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} id="form-id"> {/* Added form ID here */}
+        <form onSubmit={handleSubmit} id={`card-form-${index}`}> {/* Added form ID here */}
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="name">Name</Label>
                 <Input
-                  id="name"
+                  id={`employee-name-${index}`}
                   placeholder="Enter the name"
                   value={name || ''} // Better handling of null default
                   onChange={(e) => setName(e.target.value)}
@@ -43,7 +51,7 @@ export default function Cards({
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
-                  id="email"
+                  id={`employee-email-${index}`}
                   type="email"
                   placeholder="Enter the email"
                   value={email || ''} // Better handling of null default
@@ -54,7 +62,7 @@ export default function Cards({
               <div className="space-y-1.5">
                 <Label htmlFor="password">Password</Label>
                 <Input
-                  id="password"
+                  id={`employee-password-${index}`}
                   type="password"
                   placeholder="Enter the password"
                   value={password}
@@ -68,11 +76,11 @@ export default function Cards({
         </form>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <Button variant="outline" type="button">
-          Cancel
+        <Button onClick={handleDeleteButton} className="bg-[#db1c1c] hover:bg-[#e61e1e] hover:text-white cursor-pointer text-white" variant="outline" type="button">
+          Delete
         </Button>
-        <Button type="submit" form="form-id"> {/* Now matches the form ID */}
-          Submit
+        <Button className="cursor-pointer" type="submit" form={`card-form-${index}`}> {/* Now matches the form ID */}
+          Update
         </Button>
       </CardFooter>
     </Card>
