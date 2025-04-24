@@ -57,7 +57,7 @@ const Admin = () => {
           Create new Employee
         </Button>
 
-        <Button variant="contained" onClick={() => window.location.href = '/customer'}>
+        <Button variant="contained" onClick={() => window.location.href = '/admin/employees'}>
           Manage Employees
         </Button>
 

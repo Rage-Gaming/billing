@@ -7,8 +7,8 @@ const NavBar = () => {
   return (
     <div className='flex px-10 py-2 rounded-xl justify-center items-center bg-[#eeeeee] navBar'>
       <div className='flex text-2xl font-bold items-center gap-5'>
-        <img src={logo} alt="Logo" className='w-16 h-16' />
-        <h1>Boundless</h1>
+        <img onClick={() => navigate('/admin')} src={logo} alt="Logo" className='w-16 h-16 cursor-pointer' />
+        <h1 onClick={() => navigate('/admin')} className='cursor-pointer'>Boundless</h1>
       </div>
     </div>
   )

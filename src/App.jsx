@@ -10,6 +10,7 @@ import Invoice from './pages/Invoice.jsx';
 import Welcome from './pages/Welcome.jsx';
 import { Toaster } from 'sonner';
 import React from 'react';
+import Employee from './pages/admin/Employee.jsx';
 
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = !!localStorage.getItem('authToken');
@@ -46,6 +47,11 @@ const App = () => {
               <Route path="/history" element={
                 <ProtectedRoute>
                   <InvoiceHistory />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/employees" element={
+                <ProtectedRoute>
+                  <Employee />
                 </ProtectedRoute>
               } />
 
