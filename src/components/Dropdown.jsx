@@ -12,7 +12,7 @@ const SearchableDropdown = ({
   id = null,
   onChange = () => {},
   onCreateOption = null,
-  onInputChange = () => {}, // 👈 Add this prop
+  onInputChange = () => {},
   label = 'Search Customer',
   placeholder = 'Type customer name or address...',
   noOptionsText = 'No matching customers found',
