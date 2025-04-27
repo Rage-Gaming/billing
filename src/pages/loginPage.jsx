@@ -28,14 +28,29 @@ const LoginPage = () => {
   }, []);
 
   const handleLogin = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
       const { data } = await axios.post("http://localhost:5000/api/auth/login", {
         email,
         password,
       });
+  
+      if (role === "admin" && data.user.isAdmin !== true) {
+        setError("You are not an admin");
+        return;
+      }
+  
+      if (role === "admin" && data.user.isAdmin === true) {
+        navigate("/admin");
+        localStorage.setItem("username", data.user.username);
+        localStorage.setItem("isAdmin", data.user.isAdmin);
+        return;
+      }
+  
       if (data.user.username) {
-        navigate(`/welcome?username=${data.user.username}`);
+        navigate(`/welcome`);
+        localStorage.setItem("username", data.user.username);
+        localStorage.setItem("isAdmin", data.user.isAdmin);
       } else {
         setError("Invalid credentials");
       }

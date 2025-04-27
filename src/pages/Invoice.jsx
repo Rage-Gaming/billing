@@ -14,33 +14,34 @@ import { useParams, useSearchParams } from 'react-router-dom';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
-const initialInvoiceData = {
-  client: {
-    name: '',
-    address: '',
-    phone: ''
-  },
-  invoiceInfo: {
-    date: new Date().toLocaleDateString('en-GB').split('/').reverse().join('-'),
-    number: ''
-  },
-  items: [
-    {
-      description: '',
-      qty: '1',
-      rate: '',
-      amount: '0.00',
-    }
-  ],
-  totals: {
-    subTotal: 0,
-    gst: 0,
-    total: 0
-  },
-  author: localStorage.getItem('username') || ''
-};
 
 const Invoice = () => {
+  const initialInvoiceData = {
+    client: {
+      name: '',
+      address: '',
+      phone: ''
+    },
+    invoiceInfo: {
+      date: new Date().toLocaleDateString('en-GB').split('/').reverse().join('-'),
+      number: ''
+    },
+    items: [
+      {
+        description: '',
+        qty: '1',
+        rate: '',
+        amount: '0.00',
+      }
+    ],
+    totals: {
+      subTotal: 0,
+      gst: 0,
+      total: 0
+    },
+    author: localStorage.getItem('username')
+  };
+  
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const { customer, setCustomer } = useCustomer();
@@ -91,7 +92,7 @@ const Invoice = () => {
           gst: invoiceHistory[0].totals.gst,
           total: invoiceHistory[0].totals.total
         },
-        author: invoiceHistory[0].author || localStorage.getItem('username') || ''
+        author: invoiceHistory[0].author
       });
       
       if (isAdmin) {
@@ -291,6 +292,8 @@ const Invoice = () => {
       }
     }
   };
+
+  console.log(initialInvoiceData)
 
   if (!initialInvoiceData.author) {
     return (

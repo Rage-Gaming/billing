@@ -1,6 +1,7 @@
 import React from 'react'
 import logo from '../assets/logo.png'
 import { useNavigate, } from "react-router-dom";
+import HoverDropDown from './HoverDropdown';
 
 const NavBar = () => {
   const navigate = useNavigate();
@@ -11,9 +12,10 @@ const NavBar = () => {
         <h1>Boundless</h1>
       </div>
         <div className='flex items-center justify-between gap-10 text-[#242424] font-bold'>
-            <h1 className='cursor-pointer' onClick={() => navigate("/customer")}>New Invoice</h1>
-            <h1 onClick={() => navigate("/history")} className='cursor-pointer'>History</h1>
-            <h1 className='cursor-pointer'>Profile</h1>
+            <h1 className='cursor-pointer hover:text-[#c91616]' onClick={() => navigate("/customer")}>New Invoice</h1>
+            <h1 onClick={() => navigate("/history")} className='cursor-pointer hover:text-[#c91616]'>History</h1>
+            {/* <h1 className='cursor-pointer'>Profile</h1> */}
+            <HoverDropDown />
         </div>
         
     </div>
