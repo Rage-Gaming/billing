@@ -20,8 +20,10 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: 'Email already in use' });
     }
 
+    const isAdmin = admin === true ? true : false; // Convert string to boolean
+
     // Create new user (non-admin by default)
-    const user = new User({ admin, username, email, password });
+    const user = new User({ isAdmin, username, email, password });
     await user.save();
 
     res.status(201).json({ 

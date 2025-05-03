@@ -36,17 +36,25 @@ const Admin = () => {
   const handleNewUserRegisterFormSubmit = (data) => {
     axios.post('http://localhost:5000/api/auth/register', data)
       .then((response) => {
+        toast.success('User created successfully!');
         setModelIsOpen(false);
       })
       .catch((error) => {
         console.error('There was an error!', error);
+        toast.error('Error creating user!');
       });
-    console.log(data);
   }
 
   const handleNewEmployee = () => {
     setModelIsOpen(true);
   }
+
+  const handleLogout = () => {
+    localStorage.removeItem('username');
+    localStorage.removeItem('isAdmin');
+    window.location.href = '/login';
+  }
+
   return (
     <div>
       <div className='m-5'>
@@ -65,16 +73,19 @@ const Admin = () => {
           Invoice History
         </Button>
 
-        <FormDialog
-        open={isModelOpen}
-        onClose={() => setModelIsOpen(false)}
-        title="Create new user"
-        description="Please enter the details"
-        fields={formFields}
-        onSubmit={handleNewUserRegisterFormSubmit}
-        submitText="Create"
-      />
+        <Button variant="contained" onClick={handleLogout}>
+          Log Out
+        </Button>
 
+        <FormDialog
+          open={isModelOpen}
+          onClose={() => setModelIsOpen(false)}
+          title="Create new user"
+          description="Please enter the details"
+          fields={formFields}
+          onSubmit={handleNewUserRegisterFormSubmit}
+          submitText="Create"
+        />
       </div>
     </div>
   )

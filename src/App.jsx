@@ -13,7 +13,7 @@ import React from 'react';
 import Employee from './pages/admin/Employee.jsx';
 
 const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = !!localStorage.getItem('authToken');
+  const isAuthenticated = localStorage.getItem('username');
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 

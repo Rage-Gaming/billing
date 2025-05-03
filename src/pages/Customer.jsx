@@ -82,14 +82,19 @@ export default function Customer() {
     // setSelectedCustomer(newCustomer);
     axios.post('http://localhost:5000/api/clients/register', newCustomer)
       .then((response) => {
-        console.log(response.data);
-        setClients([...clients, response.data]);
-        setSelectedCustomer(response.data);
-        setCustomer(response.data);
+        console.log(response.data.data);
+        setClients([...clients, response.data.data]);
+        setSelectedCustomer(response.data.data);
+        setCustomer(response.data.data);
         setModelIsOpen(false);
+        toast.success('Customer created successfully!');
       }
     ).catch((error) => {
       console.error('Error creating new customer:', error);
+      if (error.response.status === 400) {
+        toast.error(error.response.data.message);
+        return;
+      }
     }
     );
   };

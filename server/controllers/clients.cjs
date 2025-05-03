@@ -120,7 +120,7 @@ exports.registerClient = async (req, res) => {
       data: {
         id: savedClient.id,
         clientName: savedClient.clientName,
-        ...(savedClient.number && { number: savedClient.number })
+        ...(savedClient.number && { number: savedClient.number, address: savedClient.address })
       }
     });
 
