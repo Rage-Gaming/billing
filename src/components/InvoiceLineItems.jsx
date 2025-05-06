@@ -28,8 +28,8 @@ const LineItemComponent = ({
   // Validate if current item is complete
   const isItemValid = () => {
     return (
-      localItem.description?.trim() && 
-      !isNaN(parseFloat(localItem.rate)) && 
+      localItem.description?.trim() &&
+      !isNaN(parseFloat(localItem.rate)) &&
       !isNaN(parseInt(localItem.qty))
     );
   };
@@ -38,7 +38,7 @@ const LineItemComponent = ({
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
-          inputRef.current && !inputRef.current.contains(event.target)) {
+        inputRef.current && !inputRef.current.contains(event.target)) {
         setShowDropdown(false);
       }
     };
@@ -65,13 +65,13 @@ const LineItemComponent = ({
 
   const handleInputChange = (e) => {
     if (readOnly) return;
-    
+
     const { name, value } = e.target;
     const updatedItem = { ...localItem, [name]: value };
-    
+
     setLocalItem(updatedItem);
     onItemChange(index, updatedItem);
-    
+
     if (name === 'description') {
       setSearchQuery(value);
       setShowDropdown(value.length > 0);
@@ -122,7 +122,7 @@ const LineItemComponent = ({
 
     if (searchQuery.length === 0) {
       return (
-        <div className="px-4 py-2 text-white opacity-70 text-center">
+        <div className="px-4 py-2 text-white opacity-70 text-center printText">
           Start typing to search items
         </div>
       );
@@ -138,10 +138,10 @@ const LineItemComponent = ({
 
     if (filteredItems.length === 0 && searchQuery.length > 1) {
       return (
-        <div className="px-4 py-2 text-white">
-          No items found. 
-          <span 
-            className="text-blue-300 cursor-pointer ml-1"
+        <div className="px-4 py-2 text-white printDisable">
+          No items found.
+          <span
+            className="text-blue-300 cursor-pointer ml-1 printDisable"
             onClick={handleCreateNewItem}
           >
             Create new item "{searchQuery}"
@@ -153,16 +153,16 @@ const LineItemComponent = ({
     return (
       <>
         {filteredItems.map((item, idx) => (
-          <li 
+          <li
             key={idx}
-            className="px-4 py-2 text-white hover:bg-gray-600 cursor-pointer"
+            className="px-4 py-2 text-white hover:bg-gray-600 cursor-pointer printDisable"
             onClick={() => handleItemSelect(item)}
           >
             {item.itemName} (${item.amount})
           </li>
         ))}
-        <li 
-          className="px-4 py-2 text-white hover:bg-gray-600 cursor-pointer bg-gray-800 font-bold"
+        <li
+          className="px-4 py-2 text-white hover:bg-gray-600 cursor-pointer bg-gray-800 font-bold printDisable"
           onClick={handleCreateNewItem}
         >
           + Create new item: "{searchQuery}"
@@ -175,7 +175,7 @@ const LineItemComponent = ({
     <div className="line-item flex items-center mb-4" style={{ position: 'relative', height: '56px' }}>
       <div className="flex items-center w-full h-full">
         {/* Index */}
-        <div className="w-10 text-white flex justify-center">
+        <div className="w-10 text-white flex justify-center printText">
           {index + 1}
         </div>
 
@@ -199,15 +199,39 @@ const LineItemComponent = ({
                 autoComplete="off"
                 placeholder="Item description"
                 sx={{
-                  '& .MuiInputBase-input': { color: 'white', height: '40px' },
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-                  height: '100%'
+                  '& .MuiInputBase-input': {
+                    color: 'white', // White text in UI
+                    height: '40px',
+                    '@media print': {
+                      color: 'black', // Black text when printed
+                    }
+                  },
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'white'
+                  },
+                  height: '100%',
+                  '& .MuiFormHelperText-root': {
+                    color: 'white',
+                    '@media print': {
+                      color: 'black',
+                    }
+                  }
+                }}
+                InputProps={{
+                  inputProps: {
+                    className: 'printText',
+                    onKeyDown: (e) => { // For continuous search
+                      if (e.key === 'Enter') {
+                        handleSearch(); // Your search function
+                      }
+                    }
+                  }
                 }}
                 error={isLast && !localItem.description?.trim()}
                 helperText={isLast && !localItem.description?.trim() ? "Description required" : ""}
               />
               {showDropdown && (
-                <ul 
+                <ul
                   ref={dropdownRef}
                   className="absolute z-10 w-full mt-1 bg-gray-700 border border-white rounded-md shadow-lg max-h-60 overflow-y-auto"
                   style={{ top: '100%' }}
@@ -234,14 +258,41 @@ const LineItemComponent = ({
               value={localItem.qty || ''}
               onChange={handleInputChange}
               placeholder="Qty"
-              inputProps={{ min: "1", step: "1" }}
               sx={{
-                '& .MuiInputBase-input': { color: 'white', height: '40px' },
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-                height: '100%'
+                '& .MuiInputBase-input': {
+                  color: 'white', // White text in UI
+                  height: '40px',
+                  '@media print': {
+                    color: 'black', // Black text when printed
+                  }
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'white'
+                },
+                height: '100%',
+                '& .MuiFormHelperText-root': {
+                  color: 'white',
+                  '@media print': {
+                    color: 'black',
+                  }
+                }
+              }}
+              inputProps={{
+                min: "1",
+                step: "1",
+                className: 'printText',
+                onKeyDown: (e) => {
+                  if (e.key === 'Enter') {
+                    handleSubmit(); // Your submission function
+                  }
+                }
               }}
               error={isLast && (!localItem.qty || isNaN(parseInt(localItem.qty)))}
-              helperText={isLast && (!localItem.qty || isNaN(parseInt(localItem.qty))) ? "Valid quantity required" : ""}
+              helperText={
+                isLast && (!localItem.qty || isNaN(parseInt(localItem.qty)))
+                  ? "Valid quantity required"
+                  : ""
+              }
             />
           )}
         </div>
@@ -261,14 +312,42 @@ const LineItemComponent = ({
               value={localItem.rate || ''}
               onChange={handleInputChange}
               placeholder="Rate"
-              inputProps={{ min: "0", step: "0.01" }}
               sx={{
-                '& .MuiInputBase-input': { color: 'white', height: '40px' },
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-                height: '100%'
+                '& .MuiInputBase-input': {
+                  color: 'white', // White text in UI
+                  height: '40px',
+                  '@media print': {
+                    color: 'black', // Black text when printed
+                  }
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'white'
+                },
+                height: '100%',
+                '& .MuiFormHelperText-root': {
+                  color: 'white',
+                  '@media print': {
+                    color: 'black',
+                  }
+                }
               }}
-              error={isLast && (!localItem.rate || isNaN(parseFloat(localItem.rate)))}
-              helperText={isLast && (!localItem.rate || isNaN(parseFloat(localItem.rate))) ? "Valid rate required" : ""}
+              inputProps={{
+                min: "0",
+                step: "0.01",
+                className: 'printText',
+                onKeyDown: (e) => {
+                  // Allow decimals and navigation keys
+                  if (e.key === 'Enter') {
+                    handleSubmit(); // Your submission function
+                  }
+                }
+              }}
+              error={isLast && (!localItem.rate || isNaN(parseFloat(localItem.rate)) || parseFloat(localItem.rate) < 0)}
+              helperText={
+                isLast && (!localItem.rate || isNaN(parseFloat(localItem.rate)) || parseFloat(localItem.rate) < 0)
+                  ? "Valid rate required (≥ 0)"
+                  : ""
+              }
             />
           )}
         </div>
@@ -286,10 +365,27 @@ const LineItemComponent = ({
                 color: 'white',
                 textAlign: 'right',
                 paddingRight: '8px',
-                height: '40px'
+                height: '40px',
+                '@media print': {
+                  color: 'black !important', // Force black text in print
+                  WebkitPrintColorAdjust: 'exact' // Ensures color renders in print
+                }
               },
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'white' },
-              height: '100%'
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'white'
+              },
+              height: '100%',
+              '@media print': {
+                '& .MuiInputBase-root': {
+                  backgroundColor: 'transparent !important'
+                }
+              }
+            }}
+            InputProps={{
+              readOnly: true,
+              inputProps: {
+                className: 'printText'
+              }
             }}
           />
         </div>
@@ -298,9 +394,9 @@ const LineItemComponent = ({
         {!readOnly && (
           <div className="w-[40px] flex justify-center">
             {index > 0 && (
-              <IconButton 
-                onClick={() => onRemoveLine(index)} 
-                size="small" 
+              <IconButton
+                onClick={() => onRemoveLine(index)}
+                size="small"
                 sx={{ color: 'white' }}
               >
                 <CloseIcon fontSize="small" />

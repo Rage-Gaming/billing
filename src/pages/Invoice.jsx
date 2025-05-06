@@ -41,7 +41,7 @@ const Invoice = () => {
     },
     author: localStorage.getItem('username')
   };
-  
+
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const { customer, setCustomer } = useCustomer();
@@ -94,7 +94,7 @@ const Invoice = () => {
         },
         author: invoiceHistory[0].author
       });
-      
+
       if (isAdmin) {
         setIsEditMode(false);
       }
@@ -108,10 +108,10 @@ const Invoice = () => {
     const fetchInvoiceNumber = async () => {
       try {
         const response = await axios.post(`${API_BASE_URL}/invoices/currentInvoiceNo`);
-        
+
         if (response.status === 200) {
           const invoiceNumber = `BND-${response.data.nextNumber}`;
-          
+
           setInvoiceData(prev => ({
             ...prev,
             client: {
@@ -188,14 +188,14 @@ const Invoice = () => {
       setInvoiceData(prev => {
         const updatedItems = [...prev.items];
         const currentIndex = updatedItems.length - 1;
-        
+
         updatedItems[currentIndex] = {
           ...updatedItems[currentIndex],
           description: response.data.itemName,
           rate: response.data.amount.toString(),
           amount: (parseFloat(response.data.amount) * parseFloat(updatedItems[currentIndex].qty || 1)).toFixed(2),
         };
-        
+
         return { ...prev, items: updatedItems };
       });
 
@@ -207,7 +207,7 @@ const Invoice = () => {
 
   const handleItemChange = (index, updatedItem) => {
     if (!isEditMode && isHistory) return;
-    
+
     setInvoiceData(prev => ({
       ...prev,
       items: prev.items.map((item, i) => i === index ? updatedItem : item)
@@ -217,13 +217,13 @@ const Invoice = () => {
   const handleAddLine = () => {
     if (!isEditMode && isHistory) return;
     if (invoiceData.items[invoiceData.items.length - 1].description === '') return toast.error('Please fill in the last item before adding a new one!');
-    
+
     setInvoiceData(prev => ({
       ...prev,
-      items: [...prev.items, { 
-        description: '', 
-        qty: '1', 
-        rate: '', 
+      items: [...prev.items, {
+        description: '',
+        qty: '1',
+        rate: '',
         amount: '0.00',
       }]
     }));
@@ -334,10 +334,10 @@ const Invoice = () => {
       <div className='mx-5 p-5 border-2 border-white rounded-md'>
         <div className='flex justify-between items-center mb-4'>
           <img src={logo} alt="logo" width={60} height={60} />
-          <h1 className='text-3xl font-bold text-center text-white'>Invoice {isHistory && `#${invoiceData.invoiceInfo.number}`}</h1>
+          <h1 className='text-3xl font-bold text-center text-white printText'>Invoice {isHistory && `#${invoiceData.invoiceInfo.number}`}</h1>
           {isHistory && isAdmin && (
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               onClick={() => setIsEditMode(!isEditMode)}
               color={isEditMode ? 'secondary' : 'primary'}
             >
@@ -346,26 +346,26 @@ const Invoice = () => {
           )}
         </div>
 
-        <div className='text-white mb-20'>
+        <div className='text-white mb-20 printText'>
           <h1>Boundless</h1>
           <h1>Pulikken tower</h1>
           <h1>Thrissur, Kerala</h1>
         </div>
 
-        <div className='text-white mb-4 flex justify-between'>
+        <div className='text-white mb-4 flex justify-between printText'>
           <div>
             <h1 className='font-bold'>Bill To:</h1>
             <h1>{invoiceData.client.name}</h1>
             <h1>{invoiceData.client.address}</h1>
             <h1>{invoiceData.client.phone}</h1>
             {!isHistory && (
-              <h1 onClick={() => setCustomer(null)} className='underline cursor-pointer text-blue-500'>
+              <h1 onClick={() => setCustomer(null)} className='underline cursor-pointer text-blue-500 printDisable'>
                 Change user
               </h1>
             )}
           </div>
           <div>
-            <div className='flex items-center mb-2'>
+            <div className='flex items-center mb-2 printText'>
               <h1 className='font-bold mr-2'>Invoice Date:</h1>
               {isEditMode || !isHistory ? (
                 <TextField
@@ -378,33 +378,64 @@ const Invoice = () => {
                       date: e.target.value
                     }
                   }))}
-                  sx={datePickerStyles}
                   disabled={!isEditMode && isHistory}
+                  sx={{
+                    // UI Styles
+                    '& .MuiInputBase-input': {
+                      color: 'white',
+                      '&::-webkit-calendar-picker-indicator': {
+                        filter: 'invert(1)' // Makes native picker icon white
+                      }
+                    },
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'white'
+                    },
+                    '& .MuiIconButton-root': {
+                      color: 'white' // White calendar icon in UI
+                    },
+
+                    // Print Styles
+                    '@media print': {
+                      '& .MuiInputBase-input': {
+                        color: 'black !important',
+                        '&::-webkit-calendar-picker-indicator': {
+                          display: 'none !important'
+                        }
+                      },
+                      '& .MuiIconButton-root': {
+                        display: 'none !important' // Hide only in print
+                      }
+                    }
+                  }}
+                  InputProps={{
+                    className: 'hide-calendar-on-print' // For additional print control
+                  }}
                 />
               ) : (
-                <span>{new Date(invoiceData.invoiceInfo.date).toLocaleDateString()}</span>
+                <span className='printText'>{new Date(invoiceData.invoiceInfo.date).toLocaleDateString()}</span>
               )}
             </div>
-            <div className='flex items-center mb-2'>
+            <div className='flex items-center mb-2 printText'>
               <h1 className='font-bold mr-2'>Invoice Number: {invoiceData.invoiceInfo.number}</h1>
             </div>
           </div>
         </div>
 
-        <div className='border-2 border-white rounded-md p-5 mt-4'>
-          <div className='flex bg-gray-600 p-5 text-white font-bold rounded-md mb-4'>
+        <div className='border-2 border-white rounded-md p-5 mt-4 printText'>
+          <div className='flex bg-gray-600 p-5 text-white font-bold rounded-md mb-4 printText'>
             <div className='w-10 text-center'>#</div>
             <div className='w-[35%] mx-2'>Item description</div>
             <div className='w-[15%] mx-2'>Qty</div>
             <div className='w-[15%] mx-2'>Rate</div>
             <div className='w-[15%] mx-2 flex justify-between'>
               <span className='w-[calc(100%-72px)]'>Amount</span>
-              {(isEditMode || !isHistory) && <span className='w-[64px] text-center'>Actions</span>}
+              {(isEditMode || !isHistory) && <span className='w-[64px] text-center printDisable'>Actions</span>}
             </div>
           </div>
-          
+
           {invoiceData.items.map((item, index) => (
             <LineItemComponent
+              className='printText'
               key={index}
               index={index}
               item={item}
@@ -422,9 +453,9 @@ const Invoice = () => {
           ))}
 
           {(isEditMode || !isHistory) && (
-            <div className='mt-4'>
-              <Button 
-                variant="outlined" 
+            <div className='mt-4 printDisable'>
+              <Button
+                variant="outlined"
                 color="primary"
                 onClick={handleAddLine}
                 disabled={!isEditMode && isHistory}
@@ -434,7 +465,7 @@ const Invoice = () => {
             </div>
           )}
 
-          <div className='flex justify-end items-center mt-8 text-white'>
+          <div className='flex justify-end items-center mt-8 text-white printText'>
             <div className='flex flex-col items-end'>
               <div className='text-xl font-bold mb-4'>Sub Total: ${invoiceData.totals.subTotal.toFixed(2)}</div>
               <div className='text-xl font-bold mb-4'>Tax (18%): ${invoiceData.totals.gst.toFixed(2)}</div>
@@ -442,18 +473,18 @@ const Invoice = () => {
             </div>
           </div>
 
-          <div className='mt-8 flex justify-end'>
+          <div className='mt-8 flex justify-end printDisable'>
             {(isEditMode || !isHistory) ? (
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 color="primary"
                 onClick={handleGenerateInvoice}
               >
                 {isHistory ? 'Update Invoice' : 'Generate Invoice'}
               </Button>
             ) : (
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 color="primary"
                 onClick={() => window.print()}
               >
@@ -462,7 +493,7 @@ const Invoice = () => {
             )}
           </div>
         </div>
-        
+
         <FormDialog
           open={isModelOpen}
           onClose={() => setModelIsOpen(false)}
@@ -481,7 +512,7 @@ const Invoice = () => {
               label: 'Rate',
               type: 'number',
               required: true,
-              inputProps: { 
+              inputProps: {
                 maxLength: 10,
                 step: "0.01",
                 min: "0"

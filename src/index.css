@@ -19,42 +19,15 @@ input::-webkit-inner-spin-button {
         margin: 0;
         margin-top: 2;
     }
-    body {
-        margin: 0;
-        padding: 0;
-        background-color: white !important;
-    }
     .navBar {
         display: none;
     }
-    .addLine {
-        display: none;
-    }
-    .itemRemove {
-        display: none;
-    }
-    .invoice {
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        border: none !important;
-
-    }
-    .printDesign {
-        color: black !important;
-    }
-    .printDesignDate {
+    .printText {
         color: black;
-        padding: 0;
-        border: none;
     }
-
-    .inputBox {
-        display: none !important;
+    .printDisable {
+        display: none;
     }
-
-    header, footer, nav, .no-print {
-        display: none !important;
-      }
 }
 
 @theme inline {
