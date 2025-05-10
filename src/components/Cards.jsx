@@ -68,7 +68,7 @@ export default function Cards({
                   placeholder="Enter the password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
+                  // required
                   minLength={8}
                 />
               </div>
