@@ -61,7 +61,7 @@ const App = () => {
           </InvoiceHistoryProvider>
         </CustomerProvider>
       </Router>
-      <Toaster position="bottom-center" />
+      <Toaster className='printDisable' position="bottom-center" />
     </section>
   );
 }

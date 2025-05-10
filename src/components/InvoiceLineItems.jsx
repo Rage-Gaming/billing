@@ -158,7 +158,7 @@ const LineItemComponent = ({
             className="px-4 py-2 text-white hover:bg-gray-600 cursor-pointer printDisable"
             onClick={() => handleItemSelect(item)}
           >
-            {item.itemName} (${item.amount})
+            {item.itemName} (₹{item.amount})
           </li>
         ))}
         <li
