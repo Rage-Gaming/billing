@@ -43,6 +43,25 @@ const Employee = () => {
         setIsDialogOpen(true);
     }
 
+    const handleOnCardUpdate = async (e) => {
+        try {
+            const { name, email, password } = e;
+            const response = await axios.post('/api/auth/update', { name, email, password });
+            if (response.data.success) {
+                toast.success('User updated successfully');
+                setUsers((prevUsers) => prevUsers.map((user) => user.email === email ? { ...user, username: name } : user));
+            }
+            
+        } catch (error) {
+            if (error.response && error.response.data.message) {
+                toast.error(error.response.data.message);
+                console.error('Error updating user:', error);
+                return;
+            }
+            toast.error("Something went wrong");
+        }
+    }
+
     const handleAlertDialogConfirm = async () => {
         try {
             setIsDialogOpen(false);
@@ -52,8 +71,13 @@ const Employee = () => {
             setUsers((prevUsers) => prevUsers.filter((user) => user.email !== selectedUser.email));
         }
         } catch (error) {
-            toast.error(error.response.data.message);
-            
+            if (error.response && error.response.data.message) {
+                toast.error(error.response.data.message);
+                console.error('Error deleting user:', error);
+                return;
+            }
+            toast.error("Something went wrong");
+            console.error('Error deleting user:', error);
         }
         
     }
@@ -135,6 +159,7 @@ const Employee = () => {
                                                 defaultEmail={user.email}
                                                 submit={handleOnCardSubmit}
                                                 onDelete={handleOnCardDelete}
+                                                onUpdate={handleOnCardUpdate}
                                             />
                                         );
                                     })}

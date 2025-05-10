@@ -12,20 +12,20 @@ export default function Cards({
   defaultEmail = null,
   submit = () => { },
   onDelete = () => { },
+  onUpdate = () => { },
 }) {
   const [name, setName] = useState(defaultName);
   const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e) => {
-    console.log('Form submitted with:', { name, email, password }); // Debugging line
-    e.preventDefault();
-    submit({ name, email, password });
-  }
-
   const handleDeleteButton = (e) => {
     e.preventDefault(); // Prevent default form submissionine
     onDelete({ index, name, email });
+  }
+
+  const handleUpdateButton = (e) => {
+    e.preventDefault();
+    onUpdate({ index, name, email, password });
   }
 
   return (
@@ -35,7 +35,7 @@ export default function Cards({
         <CardDescription>{titleDescription}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} id={`card-form-${index}`}> {/* Added form ID here */}
+        <form onSubmit={handleUpdateButton} id={`card-form-${index}`}> {/* Added form ID here */}
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-3">
               <div className="space-y-1.5">
@@ -57,6 +57,7 @@ export default function Cards({
                   value={email || ''} // Better handling of null default
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={true} // Assuming email is not editable
                 />
               </div>
               <div className="space-y-1.5">
@@ -79,7 +80,7 @@ export default function Cards({
         <Button onClick={handleDeleteButton} className="bg-[#db1c1c] hover:bg-[#e61e1e] hover:text-white cursor-pointer text-white" variant="outline" type="button">
           Delete
         </Button>
-        <Button className="cursor-pointer" type="submit" form={`card-form-${index}`}> {/* Now matches the form ID */}
+        <Button onSubmit={handleUpdateButton} className="cursor-pointer" type="submit" form={`card-form-${index}`}> {/* Now matches the form ID */}
           Update
         </Button>
       </CardFooter>
