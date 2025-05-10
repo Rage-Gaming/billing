@@ -44,7 +44,7 @@ export default function Customer() {
 
       setLoading(true);
       try {
-        const response = await axios.post('http://localhost:5000/api/clients/search', { query });
+        const response = await axios.post(`/api/clients/search`, { query });
 
         if (response.data.success) {
           setClients(response.data.data);
@@ -80,7 +80,7 @@ export default function Customer() {
     // setClients([...clients, newCustomer]);
     // setCustomer(newCustomer);
     // setSelectedCustomer(newCustomer);
-    axios.post('http://localhost:5000/api/clients/register', newCustomer)
+    axios.post(`/api/clients/register`, newCustomer)
       .then((response) => {
         console.log(response.data.data);
         setClients([...clients, response.data.data]);

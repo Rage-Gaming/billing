@@ -25,10 +25,10 @@ async function updateInvoiceCounter() {
 exports.saveInvoice = async (req, res) => {
   try {
     const invoiceData = req.body;
-    console.log('Received invoice date:', invoiceData.invoiceInfo.date);
+    console.log('Received invoice date:', invoiceData);
 
     // Check if invoice number exists in body
-    if (!invoiceData.invoiceInfo?.number) {
+    if (!invoiceData?.invoiceNumber) {
       return res.status(400).json({
         success: false,
         message: 'Invoice number is required'
@@ -37,7 +37,7 @@ exports.saveInvoice = async (req, res) => {
 
     // Check for existing invoice with same number
     const existing = await Invoice.findOne({
-      'invoiceInfo.number': invoiceData.invoiceInfo.number
+      'invoiceInfo.number': invoiceData.number
     });
 
     if (existing) {
@@ -54,13 +54,13 @@ exports.saveInvoice = async (req, res) => {
     // Create new invoice
     const invoice = new Invoice({
       client: {
-        name: invoiceData.client.name,
-        address: invoiceData.client.address,
-        phone: invoiceData.client.phone
+        name: invoiceData.clientName,
+        address: invoiceData.clientAddress,
+        phone: invoiceData.clientPhone
       },
       invoiceInfo: {
-        date: invoiceData.invoiceInfo.date,
-        number: invoiceData.invoiceInfo.number
+        date: invoiceData.date,
+        number: invoiceData.invoiceNumber
       },
       items: invoiceData.items.map(item => ({
         description: item.description,
@@ -108,6 +108,85 @@ exports.saveInvoice = async (req, res) => {
     });
   }
 };
+
+// Assuming you're using Express.js
+
+exports.updateInvoice = async (req, res) => {
+  console.log('Received update request:', req.body); // Log the incoming request body
+  try {
+    const invoiceData = req.body;
+
+    // Validate the required fields
+    if (!invoiceData.invoiceNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invoice number is required'
+      });
+    }
+
+    // Find the existing invoice by invoiceNumber
+    const invoice = await Invoice.findOne({ 'invoiceInfo.number': invoiceData.invoiceNumber });
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+
+    // Update invoice fields with the new data from the body
+    invoice.client.name = invoiceData.clientName;
+    invoice.client.address = invoiceData.clientAddress;
+    invoice.client.phone = invoiceData.clientPhone;
+
+    invoice.invoiceInfo.date = invoiceData.date;
+    invoice.invoiceInfo.number = invoiceData.invoiceNumber;
+
+    // Updating items, totals, and author fields
+    invoice.items = invoiceData.items.map(item => ({
+      description: item.description,
+      quantity: item.qty,
+      rate: item.rate,
+      amount: item.amount
+    }));
+
+    invoice.totals = invoiceData.totals;
+    invoice.author = invoiceData.author;
+
+    // Validate and save the updated invoice
+    await invoice.validate();
+    await invoice.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Invoice updated successfully',
+      invoiceId: invoice._id
+    });
+
+  } catch (err) {
+    console.error('Error updating invoice:', err);
+
+    if (err.name === 'ValidationError') {
+      const errors = {};
+      Object.keys(err.errors).forEach(key => {
+        errors[key] = err.errors[key].message;
+      });
+
+      return res.status(400).json({
+        success: false,
+        message: 'Validation Error',
+        errors
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update invoice',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    });
+  }
+};
+
+
 
 // Optional: Get current invoice counter (debug/admin)
 exports.getCurrentInvoiceNumber = async (req, res) => {

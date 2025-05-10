@@ -30,10 +30,11 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axios.post("http://localhost:5000/api/auth/login", {
+      const { data } = await axios.post(`/api/auth/login`, {
         email,
         password,
       });
+      console.log(data);
   
       if (role === "admin" && data.user.isAdmin !== true) {
         setError("You are not an admin");
@@ -51,12 +52,31 @@ const LoginPage = () => {
         navigate(`/welcome`);
         localStorage.setItem("username", data.user.username);
         localStorage.setItem("isAdmin", data.user.isAdmin);
-      } else {
-        setError("Invalid credentials");
       }
     } catch (error) {
-      setError("Login failed. Please check your credentials.");
-      console.error("Login Error:", error);
+      if (error.response && error.response.status === 401) {
+        setError("Invalid credentials. Please try again.");
+        return;
+      } else if (error.response && error.response.status === 400) {
+        setError("Email already in use. Please try a different email.");
+        return;
+      } else if (error.response && error.response.status === 500) {
+        setError("Server error. Please try again later.");
+        return;
+      } else if (error.response && error.response.status === 403) {
+        setError("You are not authorized to access this page.");
+        return;
+      } else if (error.response && error.response.status === 404) {
+        setError("User not found. Please check your email.");
+        return;
+      } else if (error.response && error.response.status === 429) {
+        setError("Too many requests. Please try again later.");
+        return;
+      } else if (error.response && error.response.status === 503) {
+        setError("Service unavailable. Please try again later.");
+        return;
+      }
+      setError("Something went wrong.");
     }
   };
 

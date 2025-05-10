@@ -49,10 +49,10 @@ const App = () => {
                   <InvoiceHistory />
                 </ProtectedRoute>
               } />
-              <Route path="/admin/employees" element={
-                <ProtectedRoute>
+              <Route path="/admin-employees" element={
+                // <ProtectedRoute>
                   <Employee />
-                </ProtectedRoute>
+                // </ProtectedRoute>
               } />
 
               <Route path="/" element={<Navigate to="/login" replace />} />

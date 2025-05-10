@@ -12,10 +12,8 @@ const InvoiceHistory = () => {
     const { setInvoiceHistory } = useInvoiceHistory();
     const { setCustomer } = useCustomer();
 
-
-
     const handleViewButton = (invoiceNumber) => async () => {
-        const { data } = await axios.post(`http://localhost:5000/api/invoices/getInvoice?invoiceId=${invoiceNumber}`)
+        const { data } = await axios.post(`/api/invoices/getInvoice?invoiceId=${invoiceNumber}`)
         setInvoiceHistory(data.data);
         setCustomer(null);
         navigate('/invoice?new=false', { state: { invoice: data } });
@@ -30,7 +28,7 @@ const InvoiceHistory = () => {
 
             // setLoading(true);
             try {
-                const { data } = await axios.post(`http://localhost:5000/api/invoices/search`, { query });
+                const { data } = await axios.post(`/api/invoices/search`, { query });
                 // console.log(data)
                 setItemsDatabase(data.success ? data.data : []);
             } catch (error) {

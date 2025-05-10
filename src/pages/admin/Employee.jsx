@@ -8,19 +8,19 @@ import DialogAlert from '../../components/DialogAlert';
 const Employee = () => {
     const [isAdmin, setIsAdmin] = useState(localStorage.getItem('isAdmin') === 'true');
     const [users, setUsers] = useState([
-        {
+        { // Mock data
             id: 1,  // Added unique id
-            userName: "Nidhin",
+            username: "Nidhin",
             email: "test@test.com",
         },
         {
             id: 2,  // Added unique id
-            userName: "John",
+            username: "John",
             email: "john@test.com",
         },
         {
             id: 3,  // Added unique id
-            userName: "Doe",
+            username: "Doe",
             email: "doe@test.com",
         },
     ]);
@@ -28,11 +28,11 @@ const Employee = () => {
     const [query, setQuery] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [selectedUser, setSelectedUser] = useState(null); // State to hold the selected user for deletion
-    // if (!isAdmin) {
-    //     localStorage.removeItem('isAdmin');
-    //     localStorage.removeItem('username');
-    //     return window.location.href = '/login';
-    // }
+    if (!isAdmin) {
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('username');
+        return window.location.href = '/login';
+    }
     const handleOnCardSubmit = (e) => {
         console.log(e)
     }
@@ -43,37 +43,37 @@ const Employee = () => {
     }
 
     const handleAlertDialogConfirm = () => {
-        console.log('User deleted:', selectedUser); // Debugging line
         setIsDialogOpen(false);
         // Perform the delete operation here, e.g., make an API call to delete the user
         // After deletion, you might want to refresh the user list or remove the user from the state
     }
 
-    // useEffect(() => {
-    //     const fetchClients = async () => {
-    //     //   setLoading(true);
-    //       try {
-    //         const response = await axios.post('http://localhost:5000/api/auth/search', { query });
+    useEffect(() => {
+        const fetchClients = async () => {
+        //   setLoading(true);
+          try {
+            const response = await axios.post('/api/auth/search', { query });
+            console.log('Search response:', response.data); // Debugging line
 
-    //         if (response.data.success) {
-    //             setUsers(response.data.data);
-    //         } else {
-    //             setUsers([]);
-    //         }
-    //       } catch (error) {
-    //         console.error('Search error:', error);
-    //         setUsers([]);
-    //       } finally {
-    //         // setLoading(false);
-    //       }
-    //     };
+            if (response.data.success) {
+                setUsers(response.data.data);
+            } else {
+                setUsers([]);
+            }
+          } catch (error) {
+            console.error('Search error:', error);
+            setUsers([]);
+          } finally {
+            // setLoading(false);
+          }
+        };
 
-    //     const delayDebounce = setTimeout(() => {
-    //       fetchClients();
-    //     }, 300);
+        const delayDebounce = setTimeout(() => {
+          fetchClients();
+        }, 300);
 
-    //     return () => clearTimeout(delayDebounce);
-    //   }, [query]);
+        return () => clearTimeout(delayDebounce);
+      }, [query]);
 
     return (
         <section>
@@ -98,7 +98,7 @@ const Employee = () => {
                                 onChange={(e) => setQuery(e.target.value)}
                             />
                         </div>
-                        {query.length < 2 ? (
+                        {query?.length < 2 ? (
                             <div className="flex justify-center items-center h-[43vh]">
                             <div className="text-center">
                                 <h2 className="text-xl font-semibold">No results found</h2>
@@ -109,10 +109,10 @@ const Employee = () => {
                             <div className='w-full grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-10 p-5'>
                                 {users
                                     .filter((user) => {
-                                        const q = query.toLowerCase();
+                                        const q = query?.toLowerCase();
                                         return (
-                                            user.userName.toLowerCase().includes(q) ||
-                                            user.email.toLowerCase().includes(q)
+                                            user?.username?.toLowerCase().includes(q) ||
+                                            user?.email?.toLowerCase().includes(q)
                                         );
                                     })
                                     .map((user, indexNo) => {
@@ -121,9 +121,9 @@ const Employee = () => {
                                             <Cards
                                                 key={user.id} // Changed from indexNo to user.id for better React reconciliation
                                                 index={user.id}
-                                                title={user.userName}
+                                                title={user.username}
                                                 titleDescription={user.email}
-                                                defaultName={user.userName}
+                                                defaultName={user.username}
                                                 defaultEmail={user.email}
                                                 submit={handleOnCardSubmit}
                                                 onDelete={handleOnCardDelete}
@@ -132,10 +132,10 @@ const Employee = () => {
                                     })}
 
                                 {users.filter(user => {
-                                    const q = query.toLowerCase();
+                                    const q = query?.toLowerCase();
                                     return (
-                                        user.userName.toLowerCase().includes(q) ||
-                                        user.email.toLowerCase().includes(q)
+                                        user?.username?.toLowerCase().includes(q) ||
+                                        user?.email?.toLowerCase().includes(q)
                                     );
                                 }).length === 0 && (
                                         <div className="col-span-full flex justify-center items-center h-[43vh]">

@@ -18,7 +18,7 @@ const InvoiceSchema = new mongoose.Schema({
   }],
   totals: {
     subTotal: { type: Number, required: true, min: 0 },
-    gst: { type: Number, required: true, min: 0 },
+    offer: { type: Number, required: true, min: 0 },
     total: { type: Number, required: true, min: 0 }
   },
   author: { type: String, required: true},

@@ -3,9 +3,11 @@ import AdminNavbar from './AdminNavbar'
 import Button from '@mui/material/Button';
 import FormDialog from '../../components/Modal';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const Admin = () => {
   const [isModelOpen, setModelIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   const formFields = [
     {
@@ -34,7 +36,7 @@ const Admin = () => {
   ];
 
   const handleNewUserRegisterFormSubmit = (data) => {
-    axios.post('http://localhost:5000/api/auth/register', data)
+    axios.post(`/api/auth/register`, data)
       .then((response) => {
         toast.success('User created successfully!');
         setModelIsOpen(false);
@@ -52,7 +54,7 @@ const Admin = () => {
   const handleLogout = () => {
     localStorage.removeItem('username');
     localStorage.removeItem('isAdmin');
-    window.location.href = '/login';
+    navigate('/login')
   }
 
   return (
@@ -65,11 +67,11 @@ const Admin = () => {
           Create new Employee
         </Button>
 
-        <Button variant="contained" onClick={() => window.location.href = '/admin/employees'}>
+        <Button variant="contained" onClick={() => navigate('/admin-employees')}>
           Manage Employees
         </Button>
 
-        <Button variant="contained" onClick={() => window.location.href = '/history'}>
+        <Button variant="contained" onClick={() => navigate('/history')}>
           Invoice History
         </Button>
 

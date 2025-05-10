@@ -12,8 +12,6 @@ import * as React from 'react';
 import axios from 'axios';
 import { useParams, useSearchParams } from 'react-router-dom';
 
-const API_BASE_URL = 'http://localhost:5000/api';
-
 
 const Invoice = () => {
   const initialInvoiceData = {
@@ -36,7 +34,7 @@ const Invoice = () => {
     ],
     totals: {
       subTotal: 0,
-      gst: 0,
+      offer: 0,
       total: 0
     },
     author: localStorage.getItem('username')
@@ -49,6 +47,9 @@ const Invoice = () => {
   const [modalName, setModalName] = useState('');
   const [loading, setLoading] = useState(false);
   const [itemsDatabase, setItemsDatabase] = useState([]);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [offInput, setOffInput] = useState('0');
+  const [off, setOff] = useState(parseFloat(offInput) || 0);
   const [searchQuery, setSearchQuery] = useState('');
   const [invoiceData, setInvoiceData] = useState(initialInvoiceData);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -56,17 +57,17 @@ const Invoice = () => {
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   const isHistory = invoiceHistory && searchParams.get('new') === 'false' ? true : false;
 
+
   // Memoized calculation of totals
   const calculateTotals = useCallback((items) => {
-    const subTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount)) || 0, 0);
-    const gst = subTotal * 0.18;
+    const subTotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    const offer = parseFloat(offInput) || 0;
     return {
       subTotal: parseFloat(subTotal.toFixed(2)),
-      gst: parseFloat(gst.toFixed(2)),
-      total: parseFloat((subTotal + gst).toFixed(2))
+      offer: parseFloat(offer.toFixed(2)),
+      total: parseFloat((subTotal - offer).toFixed(2))
     };
-  }, []);
-  console.log(invoiceHistory)
+  }, [offInput]);
 
   // Load invoice data if it's a historical invoice
   useEffect(() => {
@@ -89,7 +90,7 @@ const Invoice = () => {
         })),
         totals: {
           subTotal: invoiceHistory[0].totals.subTotal,
-          gst: invoiceHistory[0].totals.gst,
+          offer: invoiceHistory[0].totals.offer,
           total: invoiceHistory[0].totals.total
         },
         author: invoiceHistory[0].author
@@ -107,7 +108,7 @@ const Invoice = () => {
 
     const fetchInvoiceNumber = async () => {
       try {
-        const response = await axios.post(`${API_BASE_URL}/invoices/currentInvoiceNo`);
+        const response = await axios.post(`/api/invoices/currentInvoiceNo`);
 
         if (response.status === 200) {
           const invoiceNumber = `BND-${response.data.nextNumber}`;
@@ -155,7 +156,7 @@ const Invoice = () => {
 
       setLoading(true);
       try {
-        const { data } = await axios.post(`${API_BASE_URL}/items/search`, { searchQuery });
+        const { data } = await axios.post(`/api/items/search`, { searchQuery });
         setItemsDatabase(data.success ? data.data : []);
       } catch (error) {
         console.error('Search error:', error);
@@ -171,7 +172,7 @@ const Invoice = () => {
 
   const handleNewItemFormSubmit = async (data) => {
     try {
-      const { data: response } = await axios.post(`${API_BASE_URL}/items/create`, {
+      const { data: response } = await axios.post(`/api/items/create`, {
         itemName: data.name,
         amount: data.amount,
       });
@@ -255,30 +256,32 @@ const Invoice = () => {
       return;
     }
     try {
+      const payload = {
+        invoiceNumber: invoiceData.invoiceInfo.number,  // Include invoice number in the payload
+        clientName: invoiceData.client.name,
+        clientAddress: invoiceData.client.address,
+        clientPhone: invoiceData.client.phone,
+        date: invoiceData.invoiceInfo.date,
+        items: invoiceData.items.map(item => ({
+          description: item.description,
+          qty: item.qty,
+          rate: item.rate,
+          amount: item.amount,
+        })),
+        author: invoiceData.author,
+        totals: invoiceData.totals
+      };
+    
       if (isHistory) {
-        // Update existing invoice
-        const { status } = await axios.put(`${API_BASE_URL}/invoices/${invoiceHistory[0]._id}`, {
-          ...invoiceData,
-          clientName: invoiceData.client.name,
-          clientAddress: invoiceData.client.address,
-          clientPhone: invoiceData.client.phone,
-          date: invoiceData.invoiceInfo.date,
-          invoiceNumber: invoiceData.invoiceInfo.number
-        });
+        // Update existing invoice with invoiceNumber in the body
+        const { status } = await axios.post(`/api/invoices/update`, payload); // Send the data to backend
         if (status === 200) {
           toast.success('Invoice updated successfully!');
           setIsEditMode(false);
         }
       } else {
-        // Create new invoice
-        const { status } = await axios.post(`${API_BASE_URL}/invoices/saveInvoice`, {
-          ...invoiceData,
-          clientName: invoiceData.client.name,
-          clientAddress: invoiceData.client.address,
-          clientPhone: invoiceData.client.phone,
-          date: invoiceData.invoiceInfo.date,
-          invoiceNumber: invoiceData.invoiceInfo.number
-        });
+        // Create a new invoice if it's not a history record
+        const { status } = await axios.post(`/api/invoices/saveInvoice`, payload);
         if (status === 201) {
           window.print();
           window.location.href = '/customer?invoiceStatus=success';
@@ -292,8 +295,6 @@ const Invoice = () => {
       }
     }
   };
-
-  console.log(initialInvoiceData)
 
   if (!initialInvoiceData.author) {
     return (
@@ -334,9 +335,10 @@ const Invoice = () => {
       <div className='mx-5 p-5 border-2 border-white rounded-md'>
         <div className='flex justify-between items-center mb-4'>
           <img src={logo} alt="logo" width={60} height={60} />
-          <h1 className='text-3xl font-bold text-center text-white printText'>Invoice {isHistory && `#${invoiceData.invoiceInfo.number}`}</h1>
+          <h1 className='text-3xl font-bold text-center text-white printText'>Invoice</h1>
           {isHistory && isAdmin && (
             <Button
+            className='printDisable'
               variant="contained"
               onClick={() => setIsEditMode(!isEditMode)}
               color={isEditMode ? 'secondary' : 'primary'}
@@ -421,15 +423,15 @@ const Invoice = () => {
           </div>
         </div>
 
-        <div className='border-2 border-white rounded-md p-5 mt-4 printText'>
+        <div className='border-2 border-white rounded-md p-5 mt-4 printText printBorder'>
           <div className='flex bg-gray-600 p-5 text-white font-bold rounded-md mb-4 printText'>
             <div className='w-10 text-center'>#</div>
-            <div className='w-[35%] mx-2'>Item description</div>
+            <div className='w-[50%] mx-2'>Item description</div>
             <div className='w-[15%] mx-2'>Qty</div>
             <div className='w-[15%] mx-2'>Rate</div>
             <div className='w-[15%] mx-2 flex justify-between'>
               <span className='w-[calc(100%-72px)]'>Amount</span>
-              {(isEditMode || !isHistory) && <span className='w-[64px] text-center printDisable'>Actions</span>}
+              {/* {(isEditMode || !isHistory) && <span className='w-[64px] text-center printDisable'>Actions</span>} */}
             </div>
           </div>
 
@@ -465,11 +467,34 @@ const Invoice = () => {
             </div>
           )}
 
+          <hr className='PrintUnderLine'/>
           <div className='flex justify-end items-center mt-8 text-white printText'>
-            <div className='flex flex-col items-end'>
-              <div className='text-xl font-bold mb-4'>Sub Total: ${invoiceData.totals.subTotal.toFixed(2)}</div>
-              <div className='text-xl font-bold mb-4'>Tax (18%): ${invoiceData.totals.gst.toFixed(2)}</div>
-              <div className='text-xl font-bold'>Total: ${invoiceData.totals.total.toFixed(2)}</div>
+            <div className='flex flex-col items-end w-[20%] justify-end printTotal'>
+              <div className='text-xl font-bold mb-4'>Sub Total: ₹{invoiceData.totals.subTotal.toFixed(2)}</div>
+              <div className='text-xl font-bold mb-4 justify-end items-center flex'>
+                Discount: ₹
+                <input
+                  className="text-white border ml-2 rounded-xs px-2 py-1 printBorderDisable printText"
+                  type="number"
+                  value={inputFocused && offInput === '0' ? '' : offInput}
+                  onFocus={() => setInputFocused(true)}
+                  onBlur={() => {
+                    setInputFocused(false);
+                    if (offInput === '' || isNaN(parseFloat(offInput))) {
+                      setOffInput('0');
+                    }
+                  }}
+                  onChange={(e) => {
+                    setOffInput(e.target.value);
+                  }}
+                  style={{
+                    width: `${Math.max(offInput.length + 2, 4)}ch`,
+                    minWidth: '40px',
+                  }}
+                  disabled={!isEditMode && isHistory}
+                />
+              </div>
+              <div className='text-xl font-bold'>Total: ₹{invoiceData.totals.total.toFixed(2)}</div>
             </div>
           </div>
 

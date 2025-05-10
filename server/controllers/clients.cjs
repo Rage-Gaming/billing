@@ -50,7 +50,13 @@ exports.registerClient = async (req, res) => {
     const { clientName, number, address } = req.body;
 
     // Name validation
-    const nameTrimmed = clientName?.trim();
+    const nameTrimmed = clientName
+      ?.trim()
+      .split(' ')
+      .filter(Boolean)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+
     if (!nameTrimmed || nameTrimmed.length < 2) {
       return res.status(400).json({
         success: false,
@@ -61,7 +67,7 @@ exports.registerClient = async (req, res) => {
     // Phone validation (strict 10 digits only)
     if (number) {
       const phoneTrimmed = number.trim();
-      
+
       if (!/^\d{10}$/.test(phoneTrimmed)) {
         return res.status(400).json({
           success: false,
@@ -126,7 +132,7 @@ exports.registerClient = async (req, res) => {
 
   } catch (error) {
     console.error('Client registration error:', error);
-    
+
     if (error.code === 11000) {
       const field = error.message.includes('number') ? 'number' : 'name';
       return res.status(409).json({

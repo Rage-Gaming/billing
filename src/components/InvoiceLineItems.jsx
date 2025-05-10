@@ -182,7 +182,7 @@ const LineItemComponent = ({
         {/* Description with dropdown */}
         <div className="w-[50%] mx-2 relative h-full">
           {readOnly ? (
-            <div className="h-full flex items-center px-2 text-white">
+            <div className="h-full flex items-center px-2 text-white printText">
               {localItem.description}
             </div>
           ) : (
@@ -246,7 +246,7 @@ const LineItemComponent = ({
         {/* Quantity */}
         <div className="w-[15%] mx-2 h-full">
           {readOnly ? (
-            <div className="h-full flex items-center px-2 text-white">
+            <div className="h-full flex items-center px-2 text-white printText">
               {localItem.qty}
             </div>
           ) : (
@@ -300,7 +300,7 @@ const LineItemComponent = ({
         {/* Rate */}
         <div className="w-[15%] mx-2 h-full">
           {readOnly ? (
-            <div className="h-full flex items-center px-2 text-white">
+            <div className="h-full flex items-center px-2 text-white printText">
               {localItem.rate}
             </div>
           ) : (
@@ -353,7 +353,7 @@ const LineItemComponent = ({
         </div>
 
         {/* Amount */}
-        <div className="w-[20%] mx-2 h-full">
+        <div className="w-[15%] mx-2 h-full pr-6">
           <TextField
             fullWidth
             size="small"

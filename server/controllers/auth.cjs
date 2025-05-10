@@ -41,7 +41,7 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    console.log('Login attempt:', req.body); // Debugging line
+    console.log('Login attempt:');
     const { email, password } = req.body;
     const user = await User.findOne({ email }).select('+password');
 

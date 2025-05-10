@@ -28,6 +28,19 @@ input::-webkit-inner-spin-button {
     .printDisable {
         display: none;
     }
+    .printBorder {
+        border: 1px solid black;
+        border-radius: 0.5rem;
+    }
+    .printTotal {
+        width: 30%;
+    }
+    .printBorderDisable {
+        border: none;
+    }
+    .PrintUnderLine {
+        border: .1px solid rgba(43, 43, 43, 0.692);
+    }
 }
 
 @theme inline {
