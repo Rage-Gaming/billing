@@ -4,6 +4,7 @@ import Cards from '../../components/Cards';
 import { Input } from "@/components/ui/input";
 import axios from 'axios';
 import DialogAlert from '../../components/DialogAlert';
+import { toast } from 'sonner';
 
 const Employee = () => {
     const [isAdmin, setIsAdmin] = useState(localStorage.getItem('isAdmin') === 'true');
@@ -42,10 +43,19 @@ const Employee = () => {
         setIsDialogOpen(true);
     }
 
-    const handleAlertDialogConfirm = () => {
-        setIsDialogOpen(false);
-        // Perform the delete operation here, e.g., make an API call to delete the user
-        // After deletion, you might want to refresh the user list or remove the user from the state
+    const handleAlertDialogConfirm = async () => {
+        try {
+            setIsDialogOpen(false);
+        const response = await axios.post('/api/auth/delete', { email: selectedUser.email });
+        if (response.data.success) {
+            toast.success('User deleted successfully');
+            setUsers((prevUsers) => prevUsers.filter((user) => user.email !== selectedUser.email));
+        }
+        } catch (error) {
+            toast.error(error.response.data.message);
+            
+        }
+        
     }
 
     useEffect(() => {
@@ -53,7 +63,6 @@ const Employee = () => {
         //   setLoading(true);
           try {
             const response = await axios.post('/api/auth/search', { query });
-            console.log('Search response:', response.data); // Debugging line
 
             if (response.data.success) {
                 setUsers(response.data.data);
@@ -116,10 +125,9 @@ const Employee = () => {
                                         );
                                     })
                                     .map((user, indexNo) => {
-                                        console.log(user.id); // Debugging - remove in production
                                         return (
                                             <Cards
-                                                key={user.id} // Changed from indexNo to user.id for better React reconciliation
+                                                key={indexNo} // Changed from indexNo to user.id for better React reconciliation
                                                 index={user.id}
                                                 title={user.username}
                                                 titleDescription={user.email}
