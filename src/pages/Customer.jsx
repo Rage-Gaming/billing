@@ -91,7 +91,11 @@ export default function Customer() {
       }
     ).catch((error) => {
       console.error('Error creating new customer:', error);
-      if (error.response.status === 400) {
+      if (error.response && error.response.status === 409) {
+        toast.error("Client with this phone number already exists");
+        return;
+      }
+      if (error.respons.data.message) {
         toast.error(error.response.data.message);
         return;
       }
